@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos locales / no necesarios en producción
+iniciar_app.bat
+src/plano/
+src/pdf/
+
+# Streamlit secrets locales (nunca subir)
+.streamlit/secrets.toml
