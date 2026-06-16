@@ -63,9 +63,17 @@ st.set_page_config(
 
 def _footer() -> None:
     """Footer institucional flotante — logo arriba, texto abajo."""
-    st.markdown("""
+    logo_html = ""
+    if _escudo_path.exists():
+        with open(_escudo_path, "rb") as _f:
+            _b64 = base64.b64encode(_f.read()).decode()
+        logo_html = (
+            f'<img src="data:image/png;base64,{_b64}" '
+            f'style="height:48px;display:block;margin:0 auto 0.3rem;" alt="EPMMOP">'
+        )
+    st.markdown(f"""
     <style>
-        .main .block-container { padding-bottom: 100px !important; }
+        .main .block-container {{ padding-bottom: 100px !important; }}
     </style>
     <div style="
         position: fixed;
@@ -78,9 +86,7 @@ def _footer() -> None:
         box-shadow: 0 -2px 12px rgba(0,0,0,0.3);
         font-family: Arial, sans-serif;
     ">
-        <img src="/app/static/logo_escudo.png"
-             style="height:48px;display:block;margin:0 auto 0.3rem;"
-             alt="EPMMOP">
+        {logo_html}
         <div style="font-size:0.75rem;font-weight:600;letter-spacing:0.05em;line-height:1.4;">
             TODOS LOS DERECHOS RESERVADOS 2026 &nbsp;|&nbsp; EPMMOP
             &nbsp;|&nbsp; GERENCIA COMERCIAL &nbsp;|&nbsp; DPS
