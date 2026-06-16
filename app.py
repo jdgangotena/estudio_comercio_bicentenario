@@ -127,7 +127,7 @@ def _header(titulo: str, subtitulo: str) -> None:
     """, unsafe_allow_html=True)
 
 
-def _insight(texto: str, significativo: bool | None = None) -> None:
+def _insight(texto: str, significativo=None) -> None:
     """Caja de interpretación. significativo=True → verde ✅, False → rojo ❌, None → azul 🔎."""
     if significativo is None:
         icono, bg, borde = "🔎", "#eaf4fb", "#2980b9"
