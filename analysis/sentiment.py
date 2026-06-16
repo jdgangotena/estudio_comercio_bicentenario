@@ -38,22 +38,40 @@ NEGATIVE_KEYWORDS = {
     "peligrosa", "inseguro", "insegura", "falta", "faltan", "necesitan",
     "mejorar", "arreglar", "problema", "problemas", "basura", "descuidado",
     "abandonado", "incómodo", "deficiente", "insuficiente", "poco",
-    "pocos", "pocas", "escaso", "escasos",
+    "pocos", "pocas", "escaso", "escasos", "muerto", "muertos", "muerta",
+    "estrecho", "estrecha", "estrechas", "estrechos", "demora", "demoras",
 }
 
+# Frases (no palabras sueltas) que indican carencia o problema
+NEGATIVE_PHRASES = ["no hay", "no cuenta", "no cuentan", "hace falta",
+                    "no existe", "no existen"]
+
 TOPIC_KEYWORDS = {
-    "Seguridad": ["seguridad", "vigilancia", "policía", "cámaras", "inseguro", "peligro"],
+    "Seguridad": ["seguridad", "vigilancia", "policía", "cámaras", "camaras",
+                  "inseguro", "peligro"],
     "Baños": ["baños", "sanitarios", "servicios higiénicos", "baño"],
     "Comida y bebida": ["comida", "bebida", "alimentos", "snacks", "restaurante",
                         "café", "agua", "jugos", "helados", "kioskos", "kioscos"],
-    "Deporte": ["deporte", "canchas", "fútbol", "tenis", "basquet", "voley",
-                "correr", "ciclismo", "ejercicio", "atletismo", "gimnasio"],
+    "Deporte": ["deport", "canchas", "fútbol", "tenis", "basquet", "voley",
+                "correr", "ciclismo", "ejercicio", "atletismo", "gimnasio", "trote"],
     "Parqueadero": ["parqueadero", "estacionamiento", "parking", "parqueo"],
     "Iluminación": ["iluminación", "luz", "luminarias", "alumbrado"],
-    "Mantenimiento": ["mantenimiento", "limpieza", "mantenimiento", "cuidado"],
-    "Zonas verdes": ["árboles", "jardines", "vegetación", "plantas", "pasto"],
-    "Accesibilidad": ["acceso", "rampas", "discapacidad", "inclusión", "señalética"],
+    "Mantenimiento": ["mantenimiento", "limpieza", "cuidado", "descuidado", "abandonado"],
+    "Zonas verdes": ["árboles", "arbolado", "jardines", "vegetación", "plantas", "pasto", "natural"],
+    "Accesibilidad": ["discapacidad", "inclusión", "rampas"],
     "Eventos": ["eventos", "conciertos", "espectáculos", "actividades", "cultural"],
+    "Horario": ["horario", "hasta la noche", "más temprano", "más tarde"],
+    "Mobiliario e infraestructura": ["parrilla", "vicera", "visera", "techad", "cubiert",
+                                     "caminer", "sender", "mesas", "picnic", "basureros",
+                                     "bebederos", "bancas", "mobiliario"],
+    "Accesos y movilidad": ["entrada", "acceso", "ciclovia", "ciclovía", "ciclopaseo",
+                            "estrech", "señaletica", "señalética", "bicicleta"],
+    "Áreas para mascotas": ["canina", "caninas", "mascotas", "animalitos"],
+    "Conectividad": ["wifi", "carga de celulares", "punto de carga", "puntos de carga"],
+    "Recreación y descanso": ["juegos infantiles", "juegos extremos", "zona spa",
+                              "contemplación", "descanso", "divertirse"],
+    "Gestión y organización": ["ordenado", "organizado", "ventas ambulantes",
+                               "punto de información", "oficina de servicios"],
 }
 
 
@@ -65,9 +83,11 @@ def _clean_text(text: str) -> str:
 
 
 def _classify_sentiment(text: str) -> str:
-    words = set(_clean_text(text).split())
+    cleaned = _clean_text(text)
+    words = set(cleaned.split())
     pos_hits = len(words & POSITIVE_KEYWORDS)
     neg_hits = len(words & NEGATIVE_KEYWORDS)
+    neg_hits += sum(1 for phrase in NEGATIVE_PHRASES if phrase in cleaned)
     if pos_hits > neg_hits:
         return "Positivo"
     elif neg_hits > pos_hits:

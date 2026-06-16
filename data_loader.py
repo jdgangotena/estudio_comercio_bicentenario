@@ -40,12 +40,17 @@ COLUMN_ALIASES = {
 def load_encuesta() -> pd.DataFrame:
     """Carga la encuesta y renombra columnas a nombres cortos."""
     df = pd.read_excel(ENCUESTA_FILE)
+    # Si el archivo trae encabezados duplicados (mismo texto repetido),
+    # nos quedamos con la primera ocurrencia para evitar columnas duplicadas
+    # tras el renombrado.
+    df = df.loc[:, ~df.columns.duplicated()]
     # Renombrar columnas que coincidan exactamente
     rename_map = {}
     for orig, alias in COLUMN_ALIASES.items():
         if orig in df.columns:
             rename_map[orig] = alias
     df = df.rename(columns=rename_map)
+    df = df.loc[:, ~df.columns.duplicated()]
     return df
 
 

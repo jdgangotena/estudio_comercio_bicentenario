@@ -200,6 +200,42 @@ def elbow_silhouette(df: pd.DataFrame, cols: list,
     return fig
 
 
+def pca_loadings_df(df: pd.DataFrame, cols: list,
+                    labels: dict = None, n_pcs: int = 2) -> pd.DataFrame:
+    """
+    Retorna DataFrame de cargas (loadings) del PCA.
+    Filas = variables, columnas = PC1, PC2, … (n_pcs).
+    """
+    enc = _encode_df(df, cols)
+    X = StandardScaler().fit_transform(enc)
+    pca = PCA(n_components=min(n_pcs, len(cols)))
+    pca.fit(X)
+    col_names = [f"PC{i+1}" for i in range(pca.n_components_)]
+    row_names = [labels.get(c, c) if labels else c for c in cols]
+    return pd.DataFrame(np.round(pca.components_.T, 3),
+                        index=row_names, columns=col_names)
+
+
+def top_correlations(df: pd.DataFrame, cols: list,
+                     labels: dict = None, n: int = 3) -> list[tuple]:
+    """
+    Retorna los n pares de variables con mayor correlación absoluta (sin diagonal).
+    Cada elemento: (r, label_a, label_b).
+    """
+    enc = _encode_df(df, cols)
+    corr = enc.corr()
+    pairs = []
+    for i in range(len(cols)):
+        for j in range(i + 1, len(cols)):
+            r = corr.iloc[i, j]
+            la = labels.get(cols[i], cols[i]) if labels else cols[i]
+            lb = labels.get(cols[j], cols[j]) if labels else cols[j]
+            pairs.append((abs(r), r, la, lb))
+    pairs = [(a, r, la, lb) for a, r, la, lb in pairs if not np.isnan(r)]
+    pairs.sort(reverse=True)
+    return [(r, la, lb) for _, r, la, lb in pairs[:n]]
+
+
 def correlation_matrix(df: pd.DataFrame, cols: list,
                         labels: dict = None) -> go.Figure:
     """Matriz de correlación de variables numéricas/codificadas."""

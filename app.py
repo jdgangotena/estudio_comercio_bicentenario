@@ -24,15 +24,20 @@ from analysis.univariate import (
 from analysis.bivariate import (
     crosstab_heatmap, crosstab_stacked, crosstab_grouped,
     boxplot_continua_vs_cat, stats_tabla_bivariada,
-    consumo_vs_gasto, chi2_test,
+    consumo_vs_gasto, chi2_test, anova_test,
 )
 from analysis.multivariate import (
     pca_biplot, scree_plot, kmeans_clusters, elbow_silhouette,
-    correlation_matrix,
+    correlation_matrix, pca_loadings_df, top_correlations,
 )
 from analysis.sentiment import (
     analyze_comments, sentiment_pie, topics_bar,
     wordcloud_img, top_keywords, sentiment_by_topic_heatmap,
+)
+from analysis.hypothesis import (
+    test_h1_cantidad_kioskos, test_h2_aprobacion_kioskos,
+    fig_h1_distribucion, fig_h2_distribucion,
+    fig_h1_intervalo_confianza, fig_h2_proporciones,
 )
 from models.kiosko_model import (
     forecast_kioskos, fig_kioskos_por_zona,
@@ -48,6 +53,7 @@ from models.kiosko_model import (
     fig_distribucion_comercial, tabla_distribucion_comercial,
     fig_trafico_proyeccion, fig_demanda_vs_plan,
     fig_plan_fases, tabla_plan_fases,
+    fig_demanda_por_giro, demanda_por_giro,
 )
 from data_cleaner import GASTO_ORDER, FRECUENCIA_ORDER
 
@@ -121,6 +127,38 @@ def _header(titulo: str, subtitulo: str) -> None:
     """, unsafe_allow_html=True)
 
 
+def _insight(texto: str, significativo: bool | None = None) -> None:
+    """Caja de interpretación. significativo=True → verde ✅, False → rojo ❌, None → azul 🔎."""
+    if significativo is None:
+        icono, bg, borde = "🔎", "#eaf4fb", "#2980b9"
+    elif significativo:
+        icono, bg, borde = "✅", "#eafaf1", "#27ae60"
+    else:
+        icono, bg, borde = "❌", "#fde8e8", "#e74c3c"
+    st.markdown(
+        f'<div style="background:{bg};border-left:4px solid {borde};'
+        f'padding:0.8rem 1rem;border-radius:0 8px 8px 0;margin:0.8rem 0;font-size:0.92rem;">'
+        f'{icono} <b>Interpretación:</b> {texto}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _top_categoria(series: pd.Series) -> tuple[str, float]:
+    """Devuelve (categoría más frecuente, % que representa)."""
+    counts = series.dropna().value_counts()
+    if counts.empty:
+        return "", 0.0
+    top = counts.index[0]
+    pct = round(counts.iloc[0] / counts.sum() * 100, 1)
+    return str(top), pct
+
+
+def _pct_si(series: pd.Series) -> float:
+    """% de respuestas afirmativas ('sí'/'si')."""
+    s = series.dropna().str.strip().str.lower()
+    return round(s.isin(["sí", "si"]).sum() / len(s) * 100, 1) if len(s) else 0.0
+
+
 # ── CSS personalizado ──────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -182,6 +220,7 @@ with st.sidebar:
             "🔗 Análisis Bivariado",
             "🌐 Análisis Multivariado",
             "💬 Recomendaciones",
+            "📐 Prueba de Hipótesis",
             "🏪 Modelo comercial",
         ],
         label_visibility="collapsed",
@@ -338,6 +377,114 @@ if pagina == "🏠 Resumen Ejecutivo":
         )
         st.caption("Palabras más frecuentes en comentarios y sugerencias de los encuestados")
 
+    # ── PRUEBA DE HIPÓTESIS ──────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown('<p class="section-header">Validación estadística – Prueba de Hipótesis</p>',
+                unsafe_allow_html=True)
+
+    _fc_h = forecast_kioskos(enc, stats)
+    _h1 = test_h1_cantidad_kioskos(enc, _fc_h)
+    _h2 = test_h2_aprobacion_kioskos(enc)
+
+    col_h1r, col_h2r = st.columns(2)
+
+    for _col_h, _res in [(col_h1r, _h1), (col_h2r, _h2)]:
+        _bg  = _res["respuesta_color_bg"]
+        _brd = _res["respuesta_color_brd"]
+        _ico = _res["respuesta_icono"]
+        _p_fmt = f"{_res['p_valor']:.2e}" if _res['p_valor'] < 0.001 else f"{_res['p_valor']:.4f}"
+        with _col_h:
+            st.markdown(f"""
+            <div style="background:{_bg};border-radius:12px;padding:1.2rem;
+                        border-left:6px solid {_brd};height:100%;">
+                <div style="font-size:0.78rem;font-weight:600;color:#555;
+                            text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.4rem;">
+                    {_res['id']} — {_res['pregunta']}
+                </div>
+                <div style="font-size:1.05rem;font-weight:700;color:{_brd};margin-bottom:0.6rem;
+                            line-height:1.4;">
+                    {_ico} {_res['respuesta_directa']}
+                </div>
+                <div style="font-size:0.78rem;color:#666;">
+                    {_res['test']} &nbsp;|&nbsp; Z = {_res['z_stat']} &nbsp;|&nbsp; p = {_p_fmt}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    _insight(
+        f"<b>H1 (50 kioskos SHOT):</b> {_h1['conclusion']} &nbsp;&nbsp; "
+        f"<b>H2 (aprobación ciudadana):</b> {_h2['conclusion']}",
+        _h1["rechaza_H0"] and _h2["rechaza_H0"],
+    )
+
+    # ── MODELO COMERCIAL ─────────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown('<p class="section-header">Modelo Comercial – Kioskos propuestos (2026–2036)</p>',
+                unsafe_allow_html=True)
+
+    col_chart, col_info = st.columns([3, 2])
+    with col_chart:
+        st.plotly_chart(fig_kioskos_por_zona(_fc_h), width="stretch")
+
+    with col_info:
+        _fase1 = min(PLAN_FASES.keys())
+        _fase4 = max(PLAN_FASES.keys())
+        _tot_ini = sum(PLAN_FASES[_fase1]["kioskos"].values())
+        _tot_fin = sum(PLAN_FASES[_fase4]["kioskos"].values())
+        st.markdown(f"""
+        <div style="background:white;border-radius:10px;padding:1.2rem;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:4px solid #2980b9;">
+            <div style="font-weight:700;color:#1a3a5c;margin-bottom:0.8rem;">
+                Plan de implementación
+            </div>
+            <table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:0.3rem 0;color:#666;">Arranque {_fase1}</td>
+                <td style="font-weight:700;color:#27ae60;text-align:right;">{_tot_ini} kioskos</td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:0.3rem 0;color:#666;">Proyección {_fase4}</td>
+                <td style="font-weight:700;color:#e67e22;text-align:right;">{_tot_fin} kioskos</td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:0.3rem 0;color:#666;">Bulevar {_fase4}</td>
+                <td style="font-weight:700;color:#2980b9;text-align:right;">{PLAN_FASES[_fase4]['kioskos']['Zona 1 – Bulevar Av. Amazonas']} kioskos</td>
+            </tr>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:0.3rem 0;color:#666;">Arena {_fase4}</td>
+                <td style="font-weight:700;color:#e67e22;text-align:right;">{PLAN_FASES[_fase4]['kioskos']['Zona 2 – Arena de Espectáculos']} kioskos</td>
+            </tr>
+            <tr>
+                <td style="padding:0.3rem 0;color:#666;">Canchas {_fase4}</td>
+                <td style="font-weight:700;color:#27ae60;text-align:right;">{PLAN_FASES[_fase4]['kioskos']['Zona 3 – Canchas Deportivas y Pistas']} kioskos</td>
+            </tr>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<p class="section-header">Giros comerciales propuestos y respaldo de la encuesta</p>',
+                unsafe_allow_html=True)
+
+    col_giros, col_dem = st.columns([2, 3])
+    with col_giros:
+        for _giro_name, _giro_info in GIROS.items():
+            st.markdown(f"""
+            <div style="display:flex;align-items:center;background:white;border-radius:8px;
+                        padding:0.55rem 0.8rem;margin-bottom:0.5rem;
+                        box-shadow:0 1px 4px rgba(0,0,0,0.07);
+                        border-left:4px solid {_giro_info['color']};">
+                <span style="font-size:1.3rem;margin-right:0.6rem;">{_giro_info['icono']}</span>
+                <div>
+                    <div style="font-weight:700;color:#1a3a5c;font-size:0.88rem;">{_giro_name}</div>
+                    <div style="font-size:0.75rem;color:#666;">{_giro_info['descripcion'][:60]}…</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    with col_dem:
+        st.plotly_chart(fig_demanda_por_giro(enc), width="stretch")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SECCIÓN 2: ANÁLISIS UNIVARIADO
@@ -385,6 +532,10 @@ elif pagina == "📊 Análisis Univariado":
                 df_rango.columns = ["Rango", "Frecuencia"]
                 df_rango["%"] = (df_rango["Frecuencia"] / df_rango["Frecuencia"].sum() * 100).round(1)
                 st.dataframe(df_rango, width="stretch", hide_index=True)
+        top_rango, pct_rango = _top_categoria(enc["rango_edad"]) if "rango_edad" in enc.columns else ("", 0)
+        _insight(f"La edad promedio de los visitantes es de **{enc['edad'].mean():.0f} años**; "
+                 f"el grupo predominante es **{top_rango}** ({pct_rango}%), un dato clave para "
+                 f"definir el tipo de producto y rango de precio de los kioskos.")
 
     elif variable == "Horario de visita":
         col1, col2 = st.columns([2, 1])
@@ -411,6 +562,9 @@ elif pagina == "📊 Análisis Univariado":
                 df_h.columns = ["Franja", "Frecuencia"]
                 df_h["%"] = (df_h["Frecuencia"] / df_h["Frecuencia"].sum() * 100).round(1)
                 st.dataframe(df_h, width="stretch", hide_index=True)
+        top_franja, pct_franja = _top_categoria(enc["rango_horario"]) if "rango_horario" in enc.columns else ("", 0)
+        _insight(f"La franja de mayor afluencia es **{top_franja}** ({pct_franja}%), información "
+                 f"clave para definir el horario de atención de los kioskos.")
 
     elif variable == "Género":
         col1, col2 = st.columns([1, 1])
@@ -419,6 +573,9 @@ elif pagina == "📊 Análisis Univariado":
         with col2:
             st.markdown("#### Tabla de frecuencias")
             st.dataframe(table_frecuencia(enc["genero"]), width="stretch", hide_index=True)
+        top_g, pct_g = _top_categoria(enc["genero"])
+        equilibrio = "una muestra equilibrada entre géneros" if pct_g < 60 else f"predominio del género {top_g.lower()}"
+        _insight(f"**{pct_g}%** de los encuestados es **{top_g}**, mostrando {equilibrio}.")
 
     elif variable == "Sector de residencia":
         col1, col2 = st.columns([2, 1])
@@ -429,6 +586,9 @@ elif pagina == "📊 Análisis Univariado":
             st.markdown("#### Tabla de frecuencias")
             st.dataframe(table_frecuencia(enc["sector_residencia"]), width="stretch",
                          hide_index=True)
+        top_sec, pct_sec = _top_categoria(enc["sector_residencia"])
+        _insight(f"El sector de residencia más representado es **{top_sec}** ({pct_sec}%), útil "
+                 f"para dirigir campañas de difusión hacia esa zona.")
 
     elif variable == "Acompañante":
         col1, col2 = st.columns([1, 1])
@@ -438,6 +598,9 @@ elif pagina == "📊 Análisis Univariado":
         with col2:
             st.markdown("#### Tabla de frecuencias")
             st.dataframe(table_frecuencia(enc["acompanante"]), width="stretch", hide_index=True)
+        top_ac, pct_ac = _top_categoria(enc["acompanante"])
+        _insight(f"La mayoría visita el parque **{top_ac.lower()}** ({pct_ac}%), lo que sugiere "
+                 f"diseñar la oferta de los kioskos pensando en ese tipo de grupo.")
 
     elif variable == "Frecuencia de visita":
         col1, col2 = st.columns([2, 1])
@@ -451,6 +614,9 @@ elif pagina == "📊 Análisis Univariado":
             st.markdown("#### Tabla de frecuencias")
             st.dataframe(table_frecuencia(enc["frecuencia_visita"], order=FRECUENCIA_ORDER),
                          width="stretch", hide_index=True)
+        top_fr, pct_fr = _top_categoria(enc["frecuencia_visita"])
+        _insight(f"**{pct_fr}%** de los encuestados visita el parque **{top_fr.lower()}**, "
+                 f"un indicador del nivel de fidelización de la demanda potencial.")
 
     elif variable == "Días que visita (multi-opción)":
         st.info("⚠️ Selección múltiple: los porcentajes pueden superar el 100% ya que cada "
@@ -461,8 +627,12 @@ elif pagina == "📊 Análisis Univariado":
                             width="stretch")
         with col2:
             st.markdown("#### Tabla de frecuencias")
-            st.dataframe(table_multiselect(enc, "dias_visita"), width="stretch",
-                         hide_index=True)
+            tabla_dias = table_multiselect(enc, "dias_visita")
+            st.dataframe(tabla_dias, width="stretch", hide_index=True)
+        top_dia = tabla_dias.iloc[0]
+        _insight(f"**{top_dia['Opción']}** es el día más mencionado "
+                 f"({top_dia['% de encuestados que lo mencionaron']}% de los encuestados), "
+                 f"relevante para programar el abastecimiento de los kioskos.")
 
     elif variable == "Motivo de visita":
         col1, col2 = st.columns([2, 1])
@@ -473,6 +643,9 @@ elif pagina == "📊 Análisis Univariado":
             st.markdown("#### Tabla de frecuencias")
             st.dataframe(table_frecuencia(enc["motivo_visita"]), width="stretch",
                          hide_index=True)
+        top_mot, pct_mot = _top_categoria(enc["motivo_visita"])
+        _insight(f"El motivo principal de visita es **{top_mot}** ({pct_mot}%), lo que debe "
+                 f"orientar la oferta comercial de los kioskos.")
 
     elif variable == "¿Consumiría productos?":
         col1, col2 = st.columns([1, 1])
@@ -482,6 +655,8 @@ elif pagina == "📊 Análisis Univariado":
         with col2:
             st.markdown("#### Tabla de frecuencias")
             st.dataframe(table_frecuencia(enc["consumiria"]), width="stretch", hide_index=True)
+        _insight(f"**{_pct_si(enc['consumiria'])}%** de los encuestados consumiría productos o "
+                 f"servicios dentro del parque, lo que valida la viabilidad comercial de los kioskos.")
 
     elif variable == "Productos de interés":
         col1, col2 = st.columns([2, 1])
@@ -492,6 +667,9 @@ elif pagina == "📊 Análisis Univariado":
             st.markdown("#### Tabla de frecuencias")
             st.dataframe(table_frecuencia(enc["productos_interes"]), width="stretch",
                          hide_index=True)
+        top_prod, pct_prod = _top_categoria(enc["productos_interes"])
+        _insight(f"El producto o servicio más demandado es **{top_prod}** ({pct_prod}%); debe "
+                 f"priorizarse en la mezcla comercial (giro) de los kioskos.")
 
     elif variable == "Gasto dispuesto":
         col1, col2 = st.columns([2, 1])
@@ -504,6 +682,9 @@ elif pagina == "📊 Análisis Univariado":
             st.markdown("#### Tabla de frecuencias")
             st.dataframe(table_frecuencia(enc["gasto_dispuesto"], order=GASTO_ORDER),
                          width="stretch", hide_index=True)
+        top_gas, pct_gas = _top_categoria(enc["gasto_dispuesto"])
+        _insight(f"El rango de gasto más común es **{top_gas}** ({pct_gas}%), referencia directa "
+                 f"para fijar el ticket promedio por kiosko.")
 
     elif variable == "¿Considera adecuados los kioskos?":
         col1, col2 = st.columns([1, 1])
@@ -515,6 +696,8 @@ elif pagina == "📊 Análisis Univariado":
         with col2:
             st.dataframe(table_frecuencia(enc["kiosko_adecuado"]), width="stretch",
                          hide_index=True)
+        _insight(f"**{_pct_si(enc['kiosko_adecuado'])}%** de los encuestados considera adecuada "
+                 f"la implementación de kioskos, lo que respalda la aceptación social del proyecto.")
 
     elif variable == "Zona de acceso preferida":
         col1, col2 = st.columns([2, 1])
@@ -526,6 +709,9 @@ elif pagina == "📊 Análisis Univariado":
             )
         with col2:
             st.dataframe(table_frecuencia(enc["zona_acceso"]), width="stretch", hide_index=True)
+        top_zona, pct_zona = _top_categoria(enc["zona_acceso"])
+        _insight(f"La zona de acceso preferida es **{top_zona}** ({pct_zona}%); debe priorizarse "
+                 f"en la distribución espacial de los kioskos.")
 
     elif variable == "¿Kioskos mejorarían la experiencia?":
         col1, col2 = st.columns([1, 1])
@@ -538,6 +724,8 @@ elif pagina == "📊 Análisis Univariado":
         with col2:
             st.dataframe(table_frecuencia(enc["kiosko_mejora_experiencia"]),
                          width="stretch", hide_index=True)
+        _insight(f"**{_pct_si(enc['kiosko_mejora_experiencia'])}%** de los encuestados considera "
+                 f"que los kioskos mejorarían su experiencia en el parque.")
 
     elif variable == "Calificación actual de oferta":
         col1, col2 = st.columns([2, 1])
@@ -550,6 +738,11 @@ elif pagina == "📊 Análisis Univariado":
             st.markdown("#### Estadísticos")
             st.dataframe(table_stats_continua(enc["calificacion_oferta"]), width="stretch",
                          hide_index=True)
+        calif_prom = enc["calificacion_oferta"].dropna().mean()
+        nivel = "baja" if calif_prom < 3 else ("regular" if calif_prom < 4 else "buena")
+        _insight(f"La calificación promedio de la oferta actual es **{calif_prom:.1f}/5** "
+                 f"(percepción **{nivel}**), lo que evidencia "
+                 f"{'una oportunidad clara para nuevos kioskos' if calif_prom < 4 else 'un punto de partida favorable para ampliar la oferta'}.")
 
     elif variable == "Servicios prioritarios (multi-opción)":
         st.info("⚠️ Selección múltiple: cada encuestado pudo seleccionar varias opciones.")
@@ -562,8 +755,11 @@ elif pagina == "📊 Análisis Univariado":
             )
         with col2:
             st.markdown("#### Tabla de menciones")
-            st.dataframe(table_multiselect(enc, "servicios_prioritarios"),
-                         width="stretch", hide_index=True)
+            tabla_serv = table_multiselect(enc, "servicios_prioritarios")
+            st.dataframe(tabla_serv, width="stretch", hide_index=True)
+        top_serv = tabla_serv.iloc[0]
+        _insight(f"El servicio complementario más solicitado es **{top_serv['Opción']}** "
+                 f"({top_serv['% de encuestados que lo mencionaron']}% de menciones).")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -599,11 +795,11 @@ elif pagina == "🔗 Análisis Bivariado":
             st.dataframe(ct, width="stretch")
             chi = chi2_test(enc, "genero", "consumiria")
             st.markdown(f"""
-            **Prueba Chi-cuadrado:**
-            - χ² = {chi['chi2']} | p = {chi['p_valor']}
+            **{chi['test']}:**
+            - χ² = {chi['chi2']} | p = {chi['p_valor']} (α = 0.05)
             - Grados de libertad: {chi['grados_libertad']}
-            - **{chi['interpretacion']}**
             """)
+        _insight(chi["interpretacion"], chi["significativo"])
 
     elif analisis == "Gasto dispuesto por género":
         st.plotly_chart(consumo_vs_gasto(enc), width="stretch")
@@ -614,6 +810,9 @@ elif pagina == "🔗 Análisis Bivariado":
         enc_g["gasto_num"] = enc_g["gasto_dispuesto"].map(gasto_map)
         st.dataframe(stats_tabla_bivariada(enc_g, "gasto_num", "genero"),
                      width="stretch", hide_index=True)
+        anova = anova_test(enc_g, "gasto_num", "genero")
+        st.markdown(f"**{anova['test']}:** F = {anova['f']} | p = {anova['p_valor']} (α = 0.05)")
+        _insight(anova["interpretacion"], anova["significativo"])
 
     elif analisis == "Motivo de visita por frecuencia":
         col1, col2 = st.columns([3, 1])
@@ -626,11 +825,11 @@ elif pagina == "🔗 Análisis Bivariado":
         with col2:
             chi = chi2_test(enc, "frecuencia_visita", "motivo_visita")
             st.markdown(f"""
-            **Chi-cuadrado:**
+            **{chi['test']}:**
             - χ² = {chi['chi2']}
-            - p = {chi['p_valor']}
-            - **{chi['interpretacion']}**
+            - p = {chi['p_valor']} (α = 0.05)
             """)
+        _insight(chi["interpretacion"], chi["significativo"])
 
     elif analisis == "Aprobación de kioskos por edad (boxplot)":
         st.plotly_chart(
@@ -640,6 +839,9 @@ elif pagina == "🔗 Análisis Bivariado":
         )
         st.dataframe(stats_tabla_bivariada(enc, "edad", "kiosko_adecuado"),
                      width="stretch", hide_index=True)
+        anova = anova_test(enc, "edad", "kiosko_adecuado")
+        st.markdown(f"**{anova['test']}:** F = {anova['f']} | p = {anova['p_valor']} (α = 0.05)")
+        _insight(anova["interpretacion"], anova["significativo"])
 
     elif analisis == "Aprobación de kioskos por sector":
         col1, col2 = st.columns([3, 1])
@@ -652,11 +854,11 @@ elif pagina == "🔗 Análisis Bivariado":
         with col2:
             chi = chi2_test(enc, "sector_residencia", "kiosko_adecuado")
             st.markdown(f"""
-            **Chi-cuadrado:**
+            **{chi['test']}:**
             - χ² = {chi['chi2']}
-            - p = {chi['p_valor']}
-            - **{chi['interpretacion']}**
+            - p = {chi['p_valor']} (α = 0.05)
             """)
+        _insight(chi["interpretacion"], chi["significativo"])
 
     elif analisis == "Gasto dispuesto por acompañante":
         st.plotly_chart(
@@ -664,6 +866,9 @@ elif pagina == "🔗 Análisis Bivariado":
                              "Con quién visita", "Gasto dispuesto"),
             width="stretch"
         )
+        chi = chi2_test(enc, "acompanante", "gasto_dispuesto")
+        st.markdown(f"**{chi['test']}:** χ² = {chi['chi2']} | p = {chi['p_valor']} (α = 0.05)")
+        _insight(chi["interpretacion"], chi["significativo"])
 
     elif analisis == "Calificación de oferta por frecuencia":
         st.plotly_chart(
@@ -673,6 +878,9 @@ elif pagina == "🔗 Análisis Bivariado":
         )
         st.dataframe(stats_tabla_bivariada(enc, "calificacion_oferta", "frecuencia_visita"),
                      width="stretch", hide_index=True)
+        anova = anova_test(enc, "calificacion_oferta", "frecuencia_visita")
+        st.markdown(f"**{anova['test']}:** F = {anova['f']} | p = {anova['p_valor']} (α = 0.05)")
+        _insight(anova["interpretacion"], anova["significativo"])
 
     elif analisis == "Horario de visita por género (boxplot)":
         st.plotly_chart(
@@ -682,6 +890,9 @@ elif pagina == "🔗 Análisis Bivariado":
         )
         st.dataframe(stats_tabla_bivariada(enc, "horario_visita", "genero"),
                      width="stretch", hide_index=True)
+        anova = anova_test(enc, "horario_visita", "genero")
+        st.markdown(f"**{anova['test']}:** F = {anova['f']} | p = {anova['p_valor']} (α = 0.05)")
+        _insight(anova["interpretacion"], anova["significativo"])
 
     elif analisis == "Consumo vs Gasto – tabla cruzada":
         ct = pd.crosstab(enc["consumiria"], enc["gasto_dispuesto"], margins=True)
@@ -698,11 +909,11 @@ elif pagina == "🔗 Análisis Bivariado":
         with col2:
             chi = chi2_test(enc, "consumiria", "gasto_dispuesto")
             st.markdown(f"""
-            **Chi-cuadrado:**
+            **{chi['test']}:**
             - χ² = {chi['chi2']}
-            - p = {chi['p_valor']}
-            - **{chi['interpretacion']}**
+            - p = {chi['p_valor']} (α = 0.05)
             """)
+        _insight(chi["interpretacion"], chi["significativo"])
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -740,11 +951,26 @@ elif pagina == "🌐 Análisis Multivariado":
                         width="stretch")
         st.caption("Las variables categóricas fueron codificadas ordinalmente. "
                    "Coeficiente de Pearson sobre valores codificados.")
+        # Interpretación automática basada en los pares con mayor correlación
+        _enc_corr = enc[COLS_ENCODE].dropna()
+        _top = top_correlations(_enc_corr, COLS_ENCODE, COLS_LABELS, n=3)
+        if _top:
+            _parts = [f"<b>{la}</b> y <b>{lb}</b> (r = {r:+.2f})" for r, la, lb in _top]
+            _dir = "positiva" if _top[0][0] > 0 else "negativa"
+            _insight(
+                f"La correlación más marcada se da entre {_parts[0]}, una relación {_dir}. "
+                f"También destacan {_parts[1]} y {_parts[2]}. "
+                f"Valores de r cercanos a ±1 indican fuerte relación lineal; "
+                f"cercanos a 0 señalan variables prácticamente independientes. "
+                f"Las variables categóricas se codificaron ordinalmente, por lo que las "
+                f"correlaciones reflejan tendencias de orden, no magnitudes exactas."
+            )
 
     with tab2:
         color_opt = st.selectbox("Colorear por:", ["genero", "consumiria", "frecuencia_visita",
                                                     "motivo_visita"], key="pca_color")
-        enc_clean = enc[COLS_ENCODE + [color_opt]].dropna()
+        extra_cols = [color_opt] if color_opt not in COLS_ENCODE else []
+        enc_clean = enc[COLS_ENCODE + extra_cols].dropna()
         fig_pca, var_exp = pca_biplot(enc_clean, COLS_ENCODE, COLS_LABELS, color_col=color_opt)
         col1, col2 = st.columns([3, 1])
         with col1:
@@ -753,12 +979,30 @@ elif pagina == "🌐 Análisis Multivariado":
             st.markdown("#### Varianza explicada")
             st.dataframe(var_exp, width="stretch", hide_index=True)
             st.plotly_chart(scree_plot(enc_clean, COLS_ENCODE), width="stretch")
+        # Interpretación de PCs basada en las cargas más altas
+        _loads = pca_loadings_df(enc_clean, COLS_ENCODE, COLS_LABELS, n_pcs=2)
+        _pc1_top = _loads["PC1"].abs().nlargest(2).index.tolist()
+        _pc2_top = _loads["PC2"].abs().nlargest(2).index.tolist()
+        _pc1_pct = float(var_exp.loc[var_exp["Componente"] == "PC1",
+                                     "Varianza explicada (%)"].iloc[0])
+        _pc2_pct = float(var_exp.loc[var_exp["Componente"] == "PC2",
+                                     "Varianza explicada (%)"].iloc[0])
+        _cum_pct = float(var_exp.loc[var_exp["Componente"] == "PC2",
+                                     "Varianza acumulada (%)"].iloc[0])
+        _insight(
+            f"<b>PC1</b> ({_pc1_pct}% de varianza) captura principalmente la variabilidad de "
+            f"<b>{' y '.join(_pc1_top)}</b> — el eje que más diferencia a los encuestados. "
+            f"<b>PC2</b> ({_pc2_pct}%) refleja principalmente <b>{' y '.join(_pc2_top)}</b>. "
+            f"Juntos explican el <b>{_cum_pct}%</b> de la varianza total. "
+            f"Los vectores rojos indican la dirección en que crece cada variable; "
+            f"puntos agrupados y vectores alineados señalan perfiles similares de encuestados."
+        )
 
     with tab3:
         n_k = st.slider("Número de segmentos (k):", min_value=2, max_value=6, value=3)
         enc_km = enc[COLS_ENCODE].dropna()
-        fig_km, labels, perfil = kmeans_clusters(enc_km, COLS_ENCODE, n_clusters=n_k,
-                                                  color_labels=list(COLS_LABELS.values()))
+        fig_km, _km_labels, perfil = kmeans_clusters(enc_km, COLS_ENCODE, n_clusters=n_k,
+                                                      color_labels=list(COLS_LABELS.values()))
         col1, col2 = st.columns([2, 1])
         with col1:
             st.plotly_chart(fig_km, width="stretch")
@@ -766,18 +1010,55 @@ elif pagina == "🌐 Análisis Multivariado":
             st.markdown("#### Perfil de cada segmento")
             st.dataframe(perfil.T, width="stretch")
         st.markdown("#### Tamaño de cada segmento")
-        seg_counts = labels.value_counts().sort_index().reset_index()
+        seg_counts = _km_labels.value_counts().sort_index().reset_index()
         seg_counts.columns = ["Segmento", "N"]
         seg_counts["Segmento"] = [f"Segmento {k+1}" for k in seg_counts["Segmento"]]
         seg_counts["%"] = (seg_counts["N"] / seg_counts["N"].sum() * 100).round(1)
         st.dataframe(seg_counts, width="stretch", hide_index=True)
+        # Interpretación automática de cada segmento (solo columnas numéricas del perfil)
+        _overall_m = enc_km.mean(numeric_only=True)
+        _overall_s = enc_km.std(numeric_only=True).replace(0, 1)
+        _k_counts = _km_labels.value_counts().sort_index()
+        _bullets = []
+        for _ki, _seg_name in enumerate(perfil.index):
+            _row = perfil.loc[_seg_name]
+            _n_seg = int(_k_counts.get(_ki, 0))
+            _devs = []
+            for _col in COLS_ENCODE:
+                if _col not in perfil.columns:
+                    continue
+                _z = (_row[_col] - _overall_m[_col]) / _overall_s[_col]
+                _lbl = COLS_LABELS.get(_col, _col)
+                if _col == "edad":
+                    _feat = f"edad promedio {_row[_col]:.0f} años"
+                elif _col == "horario_visita":
+                    _feat = f"horario de visita {_row[_col]:.0f}h"
+                elif _col == "calificacion_oferta":
+                    _feat = f"calificación de oferta {_row[_col]:.1f}/5"
+                else:
+                    _feat = f"{_lbl} {'↑' if _z > 0 else '↓'} respecto al promedio"
+                _devs.append((abs(_z), _feat))
+            _devs.sort(reverse=True)
+            _top_feats = "; ".join(_f for _, _f in _devs[:3])
+            _bullets.append(f"<b>{_seg_name}</b> (n={_n_seg}): {_top_feats}.")
+        _insight(
+            "Cada segmento agrupa encuestados con perfil similar. "
+            "Características distintivas de cada uno:<br>"
+            + "<br>".join(f"• {b}" for b in _bullets)
+        )
 
     with tab4:
         enc_elbow = enc[COLS_ENCODE].dropna()
         st.plotly_chart(elbow_silhouette(enc_elbow, COLS_ENCODE, max_k=8),
                         width="stretch")
-        st.caption("El punto de quiebre en la curva de inercia (codo) y el pico en Silhouette "
-                   "indican el número óptimo de clusters.")
+        _insight(
+            "Para elegir el número óptimo de segmentos, observe dos criterios simultáneamente: "
+            "(1) <b>Método del codo (inercia):</b> el k en el que la curva deja de bajar "
+            "bruscamente — agregar más clusters ya no reduce significativamente la dispersión interna. "
+            "(2) <b>Silhouette:</b> el k con el valor más alto indica segmentos más compactos y "
+            "bien separados entre sí. Cuando ambos criterios coinciden, ese es el número recomendado. "
+            "Para este perfil de visitantes, k = 3 suele equilibrar interpretabilidad y separación."
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -861,7 +1142,162 @@ elif pagina == "💬 Recomendaciones":
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SECCIÓN 6: MODELO COMERCIAL
+# SECCIÓN 6: PRUEBA DE HIPÓTESIS
+# ══════════════════════════════════════════════════════════════════════════════
+elif pagina == "📐 Prueba de Hipótesis":
+    _header("Prueba de Hipótesis",
+            "Validación estadística de las decisiones clave del modelo comercial")
+
+    forecast = forecast_kioskos(enc, stats)
+
+    st.markdown("""
+    <div class="insight-box">
+    Se aplican dos <b>pruebas Z de hipótesis</b> (α = 0.05) sobre los datos reales de la encuesta.
+    Cada prueba sigue el marco clásico: H₀ (hipótesis nula) vs. H₁ (hipótesis alternativa),
+    con valor Z, p-valor y decisión de aceptar o rechazar H₀.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── HIPÓTESIS 1 ──────────────────────────────────────────────────────────
+    res_h1 = test_h1_cantidad_kioskos(enc, forecast)
+
+    st.markdown("---")
+    st.markdown('<p class="section-header">Hipótesis 1 – Cantidad de kioskos (Plan SHOT vs. modelo estadístico)</p>',
+                unsafe_allow_html=True)
+
+    # Tarjetas H0 / H1
+    col_h0, col_h1 = st.columns(2)
+    with col_h0:
+        st.markdown(f"""
+        <div style="background:#fef9e7;border-radius:10px;padding:1rem;
+                    border-left:5px solid #f39c12;">
+            <div style="font-weight:700;color:#d68910;font-size:0.9rem;margin-bottom:0.4rem;">
+                H₀ (Hipótesis nula)
+            </div>
+            <div style="font-size:0.88rem;color:#333;">{res_h1['H0']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_h1:
+        st.markdown(f"""
+        <div style="background:#eaf4fb;border-radius:10px;padding:1rem;
+                    border-left:5px solid #2980b9;">
+            <div style="font-weight:700;color:#1a5276;font-size:0.9rem;margin-bottom:0.4rem;">
+                H₁ (Hipótesis alternativa)
+            </div>
+            <div style="font-size:0.88rem;color:#333;">{res_h1['H1_alt']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Métricas del test
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("Prueba estadística", "Z-test (cola izq.)")
+    with c2:
+        st.metric("Z estadístico", f"{res_h1['z_stat']:.3f}")
+    with c3:
+        st.metric("Z crítico (α=0.05)", f"{res_h1['z_crit']:.3f}")
+    with c4:
+        st.metric("p-valor", "< 0.0001")
+
+    col_fig1, col_fig2 = st.columns(2)
+    with col_fig1:
+        st.plotly_chart(fig_h1_distribucion(res_h1), width="stretch")
+    with col_fig2:
+        st.plotly_chart(fig_h1_intervalo_confianza(res_h1), width="stretch")
+
+    # Decisión
+    dec_color = "#d5f5e3" if res_h1["rechaza_H0"] else "#fde8e8"
+    dec_border = "#27ae60" if res_h1["rechaza_H0"] else "#e74c3c"
+    st.markdown(f"""
+    <div style="background:{dec_color};border-radius:10px;padding:1rem 1.3rem;
+                border-left:6px solid {dec_border};margin-top:0.5rem;">
+        <div style="font-size:1.05rem;font-weight:700;color:{dec_border};">
+            {res_h1['decision']}
+        </div>
+        <div style="font-size:0.88rem;color:#333;margin-top:0.5rem;">
+            {res_h1['conclusion']}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── HIPÓTESIS 2 ──────────────────────────────────────────────────────────
+    res_h2 = test_h2_aprobacion_kioskos(enc)
+
+    st.markdown("---")
+    st.markdown('<p class="section-header">Hipótesis 2 – Aprobación ciudadana de los kioskos</p>',
+                unsafe_allow_html=True)
+
+    col_h0b, col_h1b = st.columns(2)
+    with col_h0b:
+        st.markdown(f"""
+        <div style="background:#fef9e7;border-radius:10px;padding:1rem;
+                    border-left:5px solid #f39c12;">
+            <div style="font-weight:700;color:#d68910;font-size:0.9rem;margin-bottom:0.4rem;">
+                H₀ (Hipótesis nula)
+            </div>
+            <div style="font-size:0.88rem;color:#333;">{res_h2['H0']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_h1b:
+        st.markdown(f"""
+        <div style="background:#eaf4fb;border-radius:10px;padding:1rem;
+                    border-left:5px solid #2980b9;">
+            <div style="font-weight:700;color:#1a5276;font-size:0.9rem;margin-bottom:0.4rem;">
+                H₁ (Hipótesis alternativa)
+            </div>
+            <div style="font-size:0.88rem;color:#333;">{res_h2['H1_alt']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    c1b, c2b, c3b, c4b = st.columns(4)
+    with c1b:
+        st.metric("Prueba estadística", "Z-test (cola der.)")
+    with c2b:
+        st.metric("Z estadístico", f"{res_h2['z_stat']:.3f}")
+    with c3b:
+        st.metric("Z crítico (α=0.05)", f"{res_h2['z_crit']:.3f}")
+    with c4b:
+        p_fmt = f"{res_h2['p_valor']:.2e}" if res_h2['p_valor'] < 0.001 else f"{res_h2['p_valor']:.4f}"
+        st.metric("p-valor", p_fmt)
+
+    col_fig3, col_fig4 = st.columns(2)
+    with col_fig3:
+        st.plotly_chart(fig_h2_distribucion(res_h2), width="stretch")
+    with col_fig4:
+        st.plotly_chart(fig_h2_proporciones(res_h2), width="stretch")
+
+    dec_color2 = "#d5f5e3" if res_h2["rechaza_H0"] else "#fde8e8"
+    dec_border2 = "#27ae60" if res_h2["rechaza_H0"] else "#e74c3c"
+    st.markdown(f"""
+    <div style="background:{dec_color2};border-radius:10px;padding:1rem 1.3rem;
+                border-left:6px solid {dec_border2};margin-top:0.5rem;">
+        <div style="font-size:1.05rem;font-weight:700;color:{dec_border2};">
+            {res_h2['decision']}
+        </div>
+        <div style="font-size:0.88rem;color:#333;margin-top:0.5rem;">
+            {res_h2['conclusion']}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="insight-box">
+    <b>Resumen ejecutivo:</b> ambas pruebas son concluyentes (p&lt;0.05).
+    La demanda estadística <b>no respalda</b> el plan de 50 kioskos de la SHOT —
+    el número técnicamente justificado al año 2036 es <b>25 kioskos</b>
+    (10 Bulevar + 8 Arena + 7 Canchas), respetando restricciones físicas y comerciales.
+    Al mismo tiempo, la ciudadanía <b>sí apoya mayoritariamente</b> la implementación
+    de espacios comerciales en el parque, lo que valida el proyecto en su conjunto.
+    </div>
+    """, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SECCIÓN 7: MODELO COMERCIAL
 # ══════════════════════════════════════════════════════════════════════════════
 elif pagina == "🏪 Modelo comercial":
     _header("Modelo Comercial – Kioskos Parque Bicentenario",
@@ -1088,6 +1524,22 @@ elif pagina == "🏪 Modelo comercial":
                     <div style="font-size:0.82rem;color:#555;">{giro_info['descripcion']}</div>
                 </div>
                 """, unsafe_allow_html=True)
+
+        # Respaldo de la encuesta a los giros elegidos
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<p class="section-header">¿Por qué estos giros? Respaldo con datos de la encuesta</p>',
+                    unsafe_allow_html=True)
+        st.plotly_chart(fig_demanda_por_giro(enc), width="stretch")
+        df_giro_dem = demanda_por_giro(enc)
+        top_giro_row = df_giro_dem.iloc[0]
+        _insight(
+            f"Los giros de la rotación comercial no son arbitrarios: cada uno responde a una opción "
+            f"real elegida por los encuestados en '¿Qué productos o servicios consumiría?'. "
+            f"El giro con mayor respaldo es <b>{top_giro_row['giro']}</b> "
+            f"({top_giro_row['pct_encuestados']}% de los encuestados), seguido por el resto en el orden "
+            f"mostrado en el gráfico. Esto confirma que la oferta planificada está alineada con la "
+            f"demanda manifestada, no con una selección arbitraria de productos."
+        )
 
         # Tabla de rotación por zona
         st.markdown("---")

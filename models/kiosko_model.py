@@ -126,6 +126,18 @@ GIROS = {
                              "descripcion": "Accesorios deportivos, protector solar, kits de hidratación"},
 }
 
+# Relación entre cada giro y las opciones de la encuesta
+# ("¿Qué productos o servicios consumiría dentro del parque?")
+# que lo respaldan — permite sustentar la elección de giros con datos reales.
+GIRO_PRODUCTO_MAP = {
+    "Bebidas":           ["Snacks y bebidas"],
+    "Comida rápida":     ["Comida rápida"],
+    "Snacks saludables": ["Productos saludables"],
+    "Helados y café":    ["Heladería", "Cafeterías"],
+    "Artesanías":        ["Artesanías"],
+    "Deportivo":         ["Servicios deportivos", "Alquiler de bicicletas/scooters"],
+}
+
 # Secuencia de giros recomendada por tipo de zona (se repite cíclicamente)
 GIRO_ROTATION = {
     "comercial_alta_densidad": [
@@ -818,6 +830,55 @@ def assign_giros(zona_name: str, n_kioskos: int) -> list:
     tipo = ZONAS[zona_name]["tipo"]
     rotation = GIRO_ROTATION[tipo]
     return [rotation[i % len(rotation)] for i in range(n_kioskos)]
+
+
+def demanda_por_giro(df_encuesta: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calcula, para cada giro comercial, el % de encuestados que eligió en
+    '¿Qué productos o servicios consumiría dentro del parque?' alguna opción
+    asociada a ese giro (ver GIRO_PRODUCTO_MAP). Sustenta con datos reales
+    la elección de giros en la rotación comercial.
+    """
+    serie = df_encuesta["productos_interes"].dropna() if "productos_interes" in df_encuesta.columns else pd.Series(dtype=str)
+    total = len(serie)
+    counts = serie.value_counts()
+    rows = []
+    for giro, productos in GIRO_PRODUCTO_MAP.items():
+        n = sum(counts.get(p, 0) for p in productos)
+        pct = round(n / total * 100, 1) if total else 0.0
+        rows.append({
+            "giro": giro,
+            "productos_encuesta": ", ".join(productos),
+            "n_encuestados": int(n),
+            "pct_encuestados": pct,
+        })
+    df = pd.DataFrame(rows).sort_values("pct_encuestados", ascending=False).reset_index(drop=True)
+    return df
+
+
+def fig_demanda_por_giro(df_encuesta: pd.DataFrame) -> go.Figure:
+    """Barras: % de encuestados que respaldan con su elección cada giro comercial."""
+    df = demanda_por_giro(df_encuesta)
+    colors = [GIROS[g]["color"] for g in df["giro"]]
+    labels = [f"{GIROS[g]['icono']} {g}" for g in df["giro"]]
+
+    fig = go.Figure(go.Bar(
+        x=labels, y=df["pct_encuestados"],
+        marker_color=colors,
+        text=[f"{p}%" for p in df["pct_encuestados"]],
+        textposition="outside",
+        hovertext=df["productos_encuesta"],
+    ))
+    fig.update_layout(
+        title=dict(text="Respaldo de la encuesta a cada giro comercial",
+                   font=dict(size=15), x=0.02),
+        plot_bgcolor="white", paper_bgcolor="white", font=dict(family="Arial", size=13),
+        xaxis=dict(showgrid=False),
+        yaxis=dict(title="% de encuestados interesados", gridcolor="#f0f0f0",
+                   range=[0, df["pct_encuestados"].max() * 1.25 if len(df) else 1]),
+        margin=dict(l=40, r=20, t=60, b=60),
+    )
+    return fig
 
 
 def commercial_distance_analysis(zona_name: str, n_kioskos: int) -> dict:

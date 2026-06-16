@@ -155,12 +155,42 @@ def consumo_vs_gasto(df: pd.DataFrame) -> go.Figure:
 
 
 def chi2_test(df: pd.DataFrame, col_x: str, col_y: str) -> dict:
-    """Prueba Chi-cuadrado de independencia."""
+    """Prueba Chi-cuadrado de independencia (dos variables categóricas)."""
     ct = pd.crosstab(df[col_x].dropna(), df[col_y].dropna())
     chi2, p, dof, expected = stats.chi2_contingency(ct)
+    significativo = p < 0.05
     return {
+        "test": "Chi-cuadrado de independencia",
         "chi2": round(chi2, 4),
         "p_valor": round(p, 6),
         "grados_libertad": dof,
-        "interpretacion": "Dependientes (p<0.05)" if p < 0.05 else "Independientes (p≥0.05)",
+        "significativo": significativo,
+        "interpretacion": (
+            "Existe asociación estadísticamente significativa entre ambas variables (p<0.05)."
+            if significativo else
+            "No existe asociación estadísticamente significativa entre ambas variables (p≥0.05): "
+            "con estos datos no se puede afirmar que una influya sobre la otra."
+        ),
+    }
+
+
+def anova_test(df: pd.DataFrame, col_num: str, col_cat: str) -> dict:
+    """ANOVA de un factor: compara la media de una variable numérica entre grupos
+    de una variable categórica."""
+    grupos = [g.dropna().values for _, g in df.groupby(col_cat)[col_num]]
+    grupos = [g for g in grupos if len(g) > 1]
+    f_stat, p = stats.f_oneway(*grupos)
+    significativo = p < 0.05
+    return {
+        "test": "ANOVA de un factor",
+        "f": round(f_stat, 4),
+        "p_valor": round(p, 6),
+        "significativo": significativo,
+        "interpretacion": (
+            "Existe diferencia estadísticamente significativa entre los grupos (p<0.05): "
+            "la variable categórica SÍ está asociada con la variable numérica."
+            if significativo else
+            "No existe diferencia estadísticamente significativa entre los grupos (p≥0.05): "
+            "con estos datos no hay evidencia de asociación entre ambas variables."
+        ),
     }
