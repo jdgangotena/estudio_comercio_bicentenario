@@ -280,6 +280,116 @@ if pagina == "🏠 Resumen Ejecutivo":
 
     st.markdown("---")
 
+    # ── OBJETIVOS DEL ESTUDIO ────────────────────────────────────────────────
+    st.markdown('<p class="section-header">Objetivos del estudio</p>', unsafe_allow_html=True)
+
+    obj_col1, obj_col2 = st.columns(2)
+    _objetivos = [
+        ("OBJ 1", "#2980b9", "Determinar la viabilidad estadística del plan de 50 kioskos",
+         "Evaluar si la demanda real estimada por el modelo estadístico justifica la cifra "
+         "de 50 kioskos propuesta por el plan masa de la SHOT, o si ese número sobredimensiona "
+         "la oferta comercial.",
+         "→ Validado con <b>Hipótesis H1</b>"),
+        ("OBJ 2", "#27ae60", "Medir la aceptación ciudadana de los kioskos comerciales",
+         "Cuantificar el porcentaje de visitantes que considera adecuada la implementación "
+         "de kioskos en el Parque Bicentenario y contrastar si ese respaldo supera "
+         "estadísticamente el umbral del 50 %.",
+         "→ Validado con <b>Hipótesis H2</b>"),
+        ("OBJ 3", "#8e44ad", "Caracterizar el perfil del visitante habitual",
+         "Identificar las variables sociodemográficas (edad, género, frecuencia de visita, "
+         "horario, acompañantes) y de comportamiento de consumo que definen a los distintos "
+         "segmentos de visitantes del parque.",
+         "→ Respaldado con <b>análisis univariado y bivariado</b>"),
+        ("OBJ 4", "#e67e22", "Proponer un modelo comercial basado en la demanda real",
+         "Identificar los giros comerciales con mayor respaldo en las preferencias de consumo "
+         "de los encuestados y traducirlos en un plan de implementación por fases (2026–2036) "
+         "alineado con la capacidad física de cada zona del parque.",
+         "→ Desarrollado en <b>Modelo Comercial</b>"),
+    ]
+    for i, (etiqueta, color, titulo, desc, vinculo) in enumerate(_objetivos):
+        with (obj_col1 if i % 2 == 0 else obj_col2):
+            st.markdown(f"""
+            <div style="background:#f8f9fa;border-radius:10px;padding:1rem 1.1rem;
+                        border-left:5px solid {color};margin-bottom:0.8rem;">
+                <div style="font-size:0.7rem;font-weight:700;color:{color};
+                            text-transform:uppercase;letter-spacing:0.08em;">{etiqueta}</div>
+                <div style="font-size:0.92rem;font-weight:600;color:#1a3a5c;
+                            margin:0.25rem 0 0.4rem;">{titulo}</div>
+                <div style="font-size:0.83rem;color:#444;line-height:1.5;">{desc}</div>
+                <div style="font-size:0.78rem;color:{color};margin-top:0.5rem;">{vinculo}</div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── DISEÑO METODOLÓGICO Y CÁLCULO DE MUESTRA ────────────────────────────
+    st.markdown('<p class="section-header">Diseño metodológico y cálculo de la muestra</p>',
+                unsafe_allow_html=True)
+
+    import math as _math
+    _N_univ  = kpis["total_visitas_parque_2025"]   # universo: visitas anuales 2025
+    _Z_conf  = 1.96   # nivel de confianza 95 %
+    _p_var   = 0.50   # proporción esperada (máxima varianza)
+    _q_var   = 0.50
+    _e_err   = 0.07   # margen de error 7 %
+    _n0      = (_Z_conf**2 * _p_var * _q_var) / (_e_err**2)                     # pob. infinita
+    _n_corr  = _n0 / (1 + (_n0 - 1) / _N_univ)                                  # corrección finita
+    _n_form  = int(_math.ceil(_n_corr))                                           # redondeado
+    _n_real  = kpis["n_encuestados"]                                              # encuestas reales
+
+    met_col1, met_col2 = st.columns([1.1, 1])
+    with met_col1:
+        st.markdown(f"""
+        <div style="background:#f0f4fa;border-radius:10px;padding:1.1rem 1.3rem;">
+            <div style="font-weight:600;color:#1a3a5c;font-size:0.95rem;margin-bottom:0.7rem;">
+                Parámetros del diseño
+            </div>
+            <table style="width:100%;font-size:0.84rem;border-collapse:collapse;">
+                <tr><td style="padding:0.25rem 0.5rem 0.25rem 0;color:#555;width:55%;">Universo (visitas anuales 2025)</td>
+                    <td style="font-weight:600;color:#1a3a5c;"><b>{_N_univ:,}</b></td></tr>
+                <tr><td style="padding:0.25rem 0.5rem 0.25rem 0;color:#555;">Nivel de confianza</td>
+                    <td style="font-weight:600;color:#1a3a5c;"><b>95 % (Z = {_Z_conf})</b></td></tr>
+                <tr><td style="padding:0.25rem 0.5rem 0.25rem 0;color:#555;">Proporción esperada</td>
+                    <td style="font-weight:600;color:#1a3a5c;"><b>p = q = {_p_var}</b> (máxima varianza)</td></tr>
+                <tr><td style="padding:0.25rem 0.5rem 0.25rem 0;color:#555;">Margen de error</td>
+                    <td style="font-weight:600;color:#1a3a5c;"><b>e = {int(_e_err*100)} %</b></td></tr>
+                <tr><td style="padding:0.25rem 0.5rem 0.25rem 0;color:#555;">Tipo de muestreo</td>
+                    <td style="font-weight:600;color:#1a3a5c;">Aleatorio simple</td></tr>
+            </table>
+        </div>""", unsafe_allow_html=True)
+
+    with met_col2:
+        st.markdown(f"""
+        <div style="background:#f0f4fa;border-radius:10px;padding:1.1rem 1.3rem;height:100%;">
+            <div style="font-weight:600;color:#1a3a5c;font-size:0.95rem;margin-bottom:0.7rem;">
+                Fórmula de cálculo
+            </div>
+            <div style="font-size:0.82rem;color:#333;text-align:center;
+                        background:white;border-radius:8px;padding:0.7rem;margin-bottom:0.6rem;
+                        font-family:monospace;line-height:1.8;">
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Z² · p · q · N<br>
+                n = ─────────────────────<br>
+                &nbsp;&nbsp;e² · (N–1) + Z² · p · q
+            </div>
+            <div style="font-size:0.82rem;color:#333;text-align:center;
+                        background:white;border-radius:8px;padding:0.6rem;margin-bottom:0.6rem;
+                        font-family:monospace;line-height:1.8;">
+                &nbsp;&nbsp;{_Z_conf}² · {_p_var} · {_q_var} · {_N_univ:,}<br>
+                n = ─────────────────────────────<br>
+                &nbsp;&nbsp;{_e_err}² · {_N_univ-1:,} + {_Z_conf}² · {_p_var} · {_q_var}
+            </div>
+            <div style="font-size:0.88rem;text-align:center;">
+                <span style="color:#888;">Resultado fórmula: </span>
+                <b style="color:#2980b9;">{_n_corr:.1f} encuestas</b>
+                &nbsp;→&nbsp;
+                <span style="background:#27ae60;color:white;border-radius:6px;
+                             padding:0.15rem 0.5rem;font-weight:700;font-size:0.92rem;">
+                    {_n_real} encuestas realizadas
+                </span>
+            </div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("---")
+
     # Distribución del perfil del visitante
     st.markdown('<p class="section-header">Perfil del visitante encuestado</p>', unsafe_allow_html=True)
 
