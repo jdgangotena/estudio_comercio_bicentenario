@@ -38,23 +38,20 @@ def get_kpi_summary(ctx: dict) -> dict:
     enc = ctx["encuesta"]
     total = len(enc)
 
-    consumiria_pct = 0
-    if "consumiria" in enc.columns:
-        consumiria_pct = round(
-            enc["consumiria"].str.strip().str.lower().isin(["sí", "si"]).sum() / total * 100, 1
-        )
+    def _pct_si(col: str) -> float:
+        """% de 'Sí' sobre los respondentes válidos de esa columna (excluye NaN y vacíos)."""
+        if col not in enc.columns:
+            return 0.0
+        s = enc[col].dropna()
+        s = s[s.str.strip() != ""]
+        n = len(s)
+        if n == 0:
+            return 0.0
+        return round(s.str.strip().str.lower().isin(["sí", "si"]).sum() / n * 100, 1)
 
-    aprueba_kiosko_pct = 0
-    if "kiosko_adecuado" in enc.columns:
-        aprueba_kiosko_pct = round(
-            enc["kiosko_adecuado"].str.strip().str.lower().isin(["sí", "si"]).sum() / total * 100, 1
-        )
-
-    mejora_exp_pct = 0
-    if "kiosko_mejora_experiencia" in enc.columns:
-        mejora_exp_pct = round(
-            enc["kiosko_mejora_experiencia"].str.strip().str.lower().isin(["sí", "si"]).sum() / total * 100, 1
-        )
+    consumiria_pct      = _pct_si("consumiria")
+    aprueba_kiosko_pct  = _pct_si("kiosko_adecuado")
+    mejora_exp_pct      = _pct_si("kiosko_mejora_experiencia")
 
     calif_prom = 0
     if "calificacion_oferta" in enc.columns:
