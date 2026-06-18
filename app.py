@@ -442,39 +442,205 @@ if pagina == "🏠 Resumen Ejecutivo":
                                xaxis=dict(showgrid=False), yaxis=dict(gridcolor="#f0f0f0"))
         st.plotly_chart(fig_mes, width="stretch")
 
-    # Hallazgos clave del estudio
-    st.markdown('<p class="section-header">Hallazgos clave del estudio</p>', unsafe_allow_html=True)
-    col_h1, col_h2 = st.columns(2)
-    with col_h1:
-        st.markdown("""
-        <div class="insight-box">
-        <b>✅ Alta demanda de servicios comerciales:</b> La mayoría de visitantes consumiría
-        productos o servicios dentro del parque, especialmente alimentos saludables y bebidas.
-        </div>
-        <div class="insight-box">
-        <b>📅 Pico de visitas en fin de semana:</b> Sábado y domingo concentran más del 60%
-        del flujo semanal, determinando el dimensionamiento de kioskos.
-        </div>
-        <div class="insight-box">
-        <b>🎯 Zonas de mayor accesibilidad:</b> Los visitantes identifican el bulevar de la
-        Av. Amazonas y las zonas deportivas como los puntos de mayor facilidad de acceso.
-        </div>
-        """, unsafe_allow_html=True)
-    with col_h2:
-        st.markdown("""
-        <div class="insight-box">
-        <b>💰 Disposición de gasto moderada:</b> La franja de mayor aceptación es entre $2 y $10,
-        orientando la oferta hacia productos de precio accesible y rápido consumo.
-        </div>
-        <div class="insight-box">
-        <b>⚠️ Oferta actual insuficiente:</b> La calificación promedio de los servicios actuales
-        indica espacio de mejora significativo que los kioskos pueden cubrir.
-        </div>
-        <div class="insight-box">
-        <b>🌿 Perfil de visitante activo y familiar:</b> El usuario típico visita con familia,
-        tiene motivación recreativa y deportiva, con edad media de {:.0f} años.
-        </div>
-        """.format(kpis["edad_promedio"]), unsafe_allow_html=True)
+    # ── HALLAZGOS ANÁLISIS UNIVARIADO ───────────────────────────────────────
+    st.markdown('<p class="section-header">Hallazgos del análisis univariado – perfil y comportamiento</p>',
+                unsafe_allow_html=True)
+
+    # ── helpers locales ──────────────────────────────────────────────────────
+    def _top1(col):
+        s = enc[col].dropna()
+        if s.empty: return "–", 0.0
+        v = s.value_counts()
+        return str(v.index[0]), round(v.iloc[0] / len(s) * 100, 1)
+
+    def _pct_val(col, val):
+        s = enc[col].dropna().str.strip().str.lower()
+        return round(s.isin([val.lower()]).sum() / len(s) * 100, 1) if len(s) else 0.0
+
+    # Calcular valores clave
+    _gen_top, _gen_pct   = _top1("genero") if "genero" in enc.columns else ("–", 0)
+    _frec_top, _frec_pct = _top1("frecuencia_visita") if "frecuencia_visita" in enc.columns else ("–", 0)
+    _motivo_top, _motivo_pct = _top1("motivo_visita") if "motivo_visita" in enc.columns else ("–", 0)
+    _acomp_top, _acomp_pct   = _top1("acompanante") if "acompanante" in enc.columns else ("–", 0)
+    _gasto_top, _gasto_pct   = _top1("gasto_dispuesto") if "gasto_dispuesto" in enc.columns else ("–", 0)
+
+    _horario_med = round(enc["horario_visita"].dropna().median(), 0) if "horario_visita" in enc.columns else 0
+    _edad_med    = round(enc["edad"].dropna().median(), 0) if "edad" in enc.columns else kpis["edad_promedio"]
+
+    # Productos de interés (multiselect — tomar moda)
+    if "productos_interes" in enc.columns:
+        _prod_counts = enc["productos_interes"].dropna().value_counts()
+        _prod_top  = str(_prod_counts.index[0]) if len(_prod_counts) else "–"
+        _prod_top2 = str(_prod_counts.index[1]) if len(_prod_counts) > 1 else ""
+        _prod_top3 = str(_prod_counts.index[2]) if len(_prod_counts) > 2 else ""
+        _prod_pct  = round(_prod_counts.iloc[0] / len(enc["productos_interes"].dropna()) * 100, 1) if len(_prod_counts) else 0
+    else:
+        _prod_top, _prod_top2, _prod_top3, _prod_pct = "–", "", "", 0
+
+    _calif_med = round(enc["calificacion_oferta"].dropna().mean(), 2) if "calificacion_oferta" in enc.columns else kpis["calificacion_promedio"]
+    _consumo_pct = kpis["consumiria_pct"]
+    _aprueba_pct = kpis["aprueba_kiosko_pct"]
+    _mejora_pct  = kpis["mejora_experiencia_pct"]
+
+    # Tarjetas univariadas en dos bloques
+    st.markdown("**Perfil sociodemográfico del visitante**")
+    _u_cols = st.columns(4)
+    _uni_cards_1 = [
+        ("Género predominante", _gen_top, f"{_gen_pct}% de encuestados", "#2980b9"),
+        ("Edad mediana", f"{int(_edad_med)} años", f"Promedio: {kpis['edad_promedio']} años", "#2980b9"),
+        ("Frecuencia de visita más común", _frec_top, f"{_frec_pct}% de encuestados", "#8e44ad"),
+        ("Motivo de visita principal", _motivo_top, f"{_motivo_pct}% de encuestados", "#8e44ad"),
+    ]
+    for col_u, (titulo, valor, sub, color) in zip(_u_cols, _uni_cards_1):
+        with col_u:
+            st.markdown(f"""
+            <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
+                        border-top:4px solid {color};text-align:center;min-height:110px;">
+                <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">{titulo}</div>
+                <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;line-height:1.2;">{valor}</div>
+                <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{sub}</div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    _u_cols2 = st.columns(4)
+    _uni_cards_2 = [
+        ("Visita principalmente con", _acomp_top, f"{_acomp_pct}% de encuestados", "#e67e22"),
+        ("Horario de visita mediano", f"{int(_horario_med):02d}:00 h", "Hora pico de afluencia", "#e67e22"),
+        ("Calificación actual del parque", f"{_calif_med}/5", "Escala 1 (muy mala) a 5 (muy buena)", "#e74c3c"),
+        ("Producto / servicio más demandado", _prod_top, f"{_prod_pct}% lo prefiere", "#27ae60"),
+    ]
+    for col_u, (titulo, valor, sub, color) in zip(_u_cols2, _uni_cards_2):
+        with col_u:
+            st.markdown(f"""
+            <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
+                        border-top:4px solid {color};text-align:center;min-height:110px;">
+                <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">{titulo}</div>
+                <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;line-height:1.2;">{valor}</div>
+                <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{sub}</div>
+            </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("**Actitudes hacia los kioskos comerciales**")
+    _u_cols3 = st.columns(3)
+    _uni_cards_3 = [
+        ("Consumiría en el parque", f"{_consumo_pct}%", "Demanda potencial de servicios comerciales", "#27ae60"),
+        ("Aprueba la implementación de kioskos", f"{_aprueba_pct}%", "Aceptación ciudadana directa", "#27ae60"),
+        ("Cree que mejoraría la experiencia", f"{_mejora_pct}%", "Impacto percibido positivo", "#27ae60"),
+    ]
+    for col_u, (titulo, valor, sub, color) in zip(_u_cols3, _uni_cards_3):
+        with col_u:
+            st.markdown(f"""
+            <div style="background:#eafaf1;border-radius:10px;padding:0.9rem 1rem;
+                        border-top:4px solid {color};text-align:center;min-height:100px;">
+                <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">{titulo}</div>
+                <div style="font-size:1.6rem;font-weight:700;color:{color};line-height:1.2;">{valor}</div>
+                <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{sub}</div>
+            </div>""", unsafe_allow_html=True)
+
+    if _prod_top2 or _prod_top3:
+        _prods_str = " · ".join(filter(None, [_prod_top, _prod_top2, _prod_top3]))
+        st.markdown(f"""
+        <div style="background:#f0f4fa;border-radius:8px;padding:0.7rem 1rem;
+                    margin-top:0.5rem;font-size:0.85rem;">
+            <b>Top productos/servicios de interés:</b> {_prods_str}
+            &nbsp;&mdash;&nbsp;
+            <b>Gasto dispuesto más frecuente:</b> {_gasto_top} ({_gasto_pct}% de encuestados)
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── HALLAZGOS ANÁLISIS BIVARIADO ─────────────────────────────────────────
+    st.markdown('<p class="section-header">Hallazgos del análisis bivariado – relaciones entre variables</p>',
+                unsafe_allow_html=True)
+
+    # Ejecutar todos los tests bivariados
+    _gasto_map = {"Menos de $2": 1, "Entre $2 y $5": 3.5,
+                  "Entre $5 y $10": 7.5, "Entre $10 y $20": 15, "Más de $20": 25}
+    _enc_g = enc.copy()
+    if "gasto_dispuesto" in enc.columns:
+        _enc_g["gasto_num"] = _enc_g["gasto_dispuesto"].map(_gasto_map)
+
+    _biv_tests = []
+    _safe_chi  = lambda c1, c2: chi2_test(enc, c1, c2) if (c1 in enc.columns and c2 in enc.columns) else None
+    _safe_anov = lambda col_n, col_c: anova_test(_enc_g, col_n, col_c) if (col_n in _enc_g.columns and col_c in _enc_g.columns) else None
+
+    _tests_def = [
+        ("Género",              "¿Consumiría en el parque?",    _safe_chi("genero", "consumiria"),
+         "Determina si el género influye en la propensión de consumo."),
+        ("Género",              "Gasto dispuesto (ANOVA)",      _safe_anov("gasto_num", "genero"),
+         "Evalúa si hombres y mujeres difieren en cuánto pagarían."),
+        ("Frecuencia de visita","Motivo de visita",             _safe_chi("frecuencia_visita", "motivo_visita"),
+         "Analiza si el propósito de la visita determina su regularidad."),
+        ("Edad",                "Aprobación de kioskos (ANOVA)",_safe_anov("edad", "kiosko_adecuado"),
+         "Verifica si la edad influye en la actitud hacia los kioskos."),
+        ("Sector de residencia","Aprobación de kioskos",        _safe_chi("sector_residencia", "kiosko_adecuado"),
+         "Investiga si la zona de origen condiciona la aprobación."),
+        ("Acompañante",         "Gasto dispuesto",              _safe_chi("acompanante", "gasto_dispuesto"),
+         "Relaciona con quién se visita el parque y el gasto potencial."),
+        ("Calificación oferta", "Frecuencia de visita (ANOVA)", _safe_anov("calificacion_oferta", "frecuencia_visita"),
+         "Evalúa si visitantes frecuentes perciben mejor la oferta actual."),
+        ("Horario de visita",   "Género (ANOVA)",               _safe_anov("horario_visita", "genero"),
+         "Analiza si hombres y mujeres visitan en horarios distintos."),
+        ("¿Consumiría?",        "Gasto dispuesto",              _safe_chi("consumiria", "gasto_dispuesto"),
+         "Relaciona disposición de consumo con el monto que pagarían."),
+    ]
+
+    # Tabla resumen de tests
+    _biv_col1, _biv_col2 = st.columns([1.5, 1])
+    with _biv_col1:
+        st.markdown("**Tabla resumen de pruebas de asociación (α = 0.05)**")
+        _filas_html = ""
+        _n_sig = 0
+        for (v1, v2, res, _) in _tests_def:
+            if res is None:
+                continue
+            _sig = res["significativo"]
+            _ico = "✅" if _sig else "❌"
+            _col_fila = "#eafaf1" if _sig else "#fff5f5"
+            _stat_str = f"χ²={res['chi2']}" if "chi2" in res else f"F={res['f']}"
+            _p_str = f"p={res['p_valor']}"
+            if _sig: _n_sig += 1
+            _filas_html += f"""
+            <tr style="background:{_col_fila};">
+                <td style="padding:0.35rem 0.6rem;font-size:0.8rem;color:#444;">{v1}</td>
+                <td style="padding:0.35rem 0.6rem;font-size:0.8rem;color:#444;">{v2}</td>
+                <td style="padding:0.35rem 0.6rem;font-size:0.8rem;font-family:monospace;">{_stat_str}</td>
+                <td style="padding:0.35rem 0.6rem;font-size:0.8rem;font-family:monospace;">{_p_str}</td>
+                <td style="padding:0.35rem 0.6rem;font-size:0.85rem;text-align:center;">{_ico}</td>
+            </tr>"""
+        st.markdown(f"""
+        <table style="width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;">
+            <thead>
+                <tr style="background:#1a3a5c;color:white;">
+                    <th style="padding:0.5rem 0.6rem;font-size:0.78rem;text-align:left;">Variable 1</th>
+                    <th style="padding:0.5rem 0.6rem;font-size:0.78rem;text-align:left;">Variable 2</th>
+                    <th style="padding:0.5rem 0.6rem;font-size:0.78rem;text-align:left;">Estadístico</th>
+                    <th style="padding:0.5rem 0.6rem;font-size:0.78rem;text-align:left;">p-valor</th>
+                    <th style="padding:0.5rem 0.6rem;font-size:0.78rem;text-align:center;">Sig.</th>
+                </tr>
+            </thead>
+            <tbody>{_filas_html}</tbody>
+        </table>""", unsafe_allow_html=True)
+
+    with _biv_col2:
+        st.markdown("**Interpretaciones clave**")
+        _n_total = sum(1 for _, _, r, _ in _tests_def if r is not None)
+        st.markdown(f"""
+        <div style="background:#f0f4fa;border-radius:10px;padding:0.9rem 1rem;margin-bottom:0.7rem;">
+            <div style="font-size:0.78rem;color:#555;margin-bottom:0.3rem;">Relaciones estadísticamente significativas</div>
+            <div style="font-size:1.8rem;font-weight:700;color:#2980b9;">{_n_sig} <span style="font-size:1rem;color:#888;">de {_n_total}</span></div>
+        </div>""", unsafe_allow_html=True)
+
+        for (v1, v2, res, desc) in _tests_def:
+            if res is None or not res["significativo"]:
+                continue
+            st.markdown(f"""
+            <div style="border-left:4px solid #27ae60;background:#f0fdf4;border-radius:0 8px 8px 0;
+                        padding:0.5rem 0.8rem;margin-bottom:0.5rem;">
+                <div style="font-size:0.78rem;font-weight:600;color:#27ae60;">✅ {v1} × {v2}</div>
+                <div style="font-size:0.78rem;color:#444;margin-top:0.2rem;">{desc}</div>
+                <div style="font-size:0.75rem;color:#27ae60;margin-top:0.2rem;">{res['interpretacion'][:100]}...</div>
+            </div>""", unsafe_allow_html=True)
 
     # Nube de palabras de comentarios
     st.markdown('<p class="section-header">Lo que pide la ciudadanía (nube de palabras)</p>',
