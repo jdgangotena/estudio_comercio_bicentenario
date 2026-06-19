@@ -1090,19 +1090,19 @@ def _estimate_zone_annual_visitors(estadisticas: dict, zone_sources: list,
 
 
 def _conversion_rates(df_encuesta: pd.DataFrame) -> dict:
-    total = len(df_encuesta)
-    consumiria_pct = 0
-    if "consumiria" in df_encuesta.columns:
-        consumiria_pct = (
-            df_encuesta["consumiria"].str.strip().str.lower()
-            .isin(["sí", "si", "yes"]).sum() / total
-        )
-    kiosko_ok_pct = 0
-    if "kiosko_adecuado" in df_encuesta.columns:
-        kiosko_ok_pct = (
-            df_encuesta["kiosko_adecuado"].str.strip().str.lower()
-            .isin(["sí", "si"]).sum() / total
-        )
+    def _tasa_si(col: str) -> float:
+        """% de 'Sí' sobre quienes respondieron esa columna (excluye NaN/vacíos)."""
+        if col not in df_encuesta.columns:
+            return 0.0
+        s = df_encuesta[col].dropna()
+        s = s[s.str.strip() != ""]
+        n = len(s)
+        return s.str.strip().str.lower().isin(["sí", "si", "yes"]).sum() / n if n else 0.0
+
+    consumiria_pct = _tasa_si("consumiria")
+    kiosko_ok_pct  = _tasa_si("kiosko_adecuado")
+    mejora_pct     = _tasa_si("kiosko_mejora_experiencia")
+
     gasto_map = {
         "Menos de $2": 1.5, "Entre $2 y $5": 3.5, "Entre $5 y $10": 7.5,
         "Entre $10 y $20": 15.0, "Más de $20": 22.0,
@@ -1111,12 +1111,6 @@ def _conversion_rates(df_encuesta: pd.DataFrame) -> dict:
     if "gasto_dispuesto" in df_encuesta.columns:
         gastos = df_encuesta["gasto_dispuesto"].map(gasto_map).dropna()
         gasto_prom = gastos.mean() if len(gastos) > 0 else 3.5
-    mejora_pct = 0
-    if "kiosko_mejora_experiencia" in df_encuesta.columns:
-        mejora_pct = (
-            df_encuesta["kiosko_mejora_experiencia"].str.strip().str.lower()
-            .isin(["sí", "si"]).sum() / total
-        )
     return {
         "tasa_consumo": round(consumiria_pct, 3),
         "tasa_aprobacion_kiosko": round(kiosko_ok_pct, 3),

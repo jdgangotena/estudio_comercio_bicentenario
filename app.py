@@ -464,8 +464,28 @@ if pagina == "🏠 Resumen Ejecutivo":
     _acomp_top, _acomp_pct   = _top1("acompanante") if "acompanante" in enc.columns else ("–", 0)
     _gasto_top, _gasto_pct   = _top1("gasto_dispuesto") if "gasto_dispuesto" in enc.columns else ("–", 0)
 
-    _horario_med = round(enc["horario_visita"].dropna().median(), 0) if "horario_visita" in enc.columns else 0
     _edad_med    = round(enc["edad"].dropna().median(), 0) if "edad" in enc.columns else kpis["edad_promedio"]
+
+    # Horario semana vs fin de semana
+    _FINDE  = {"sábado", "sabado", "domingo"}
+    _SEMANA = {"lunes", "martes", "miércoles", "miercoles", "jueves", "viernes"}
+    def _es_tipo(fila, target):
+        if not isinstance(fila, str): return False
+        return bool({p.strip().lower() for p in fila.split(",")} & target)
+    if "dias_visita" in enc.columns and "horario_visita" in enc.columns:
+        _mask_fe = enc["dias_visita"].apply(lambda x: _es_tipo(x, _FINDE))
+        _mask_se = enc["dias_visita"].apply(lambda x: _es_tipo(x, _SEMANA))
+        _h_fe = enc.loc[_mask_fe, "horario_visita"].dropna()
+        _h_se = enc.loc[_mask_se, "horario_visita"].dropna()
+        _fe_q1, _fe_q3 = int(_h_fe.quantile(0.25)), int(_h_fe.quantile(0.75))
+        _se_q1, _se_q3 = int(_h_se.quantile(0.25)), int(_h_se.quantile(0.75))
+        _fe_mode = int(_h_fe.mode().iloc[0]) if len(_h_fe) else 10
+        _se_mode = int(_h_se.mode().iloc[0]) if len(_h_se) else 10
+        _fe_min  = int(_h_fe.min()) if len(_h_fe) else 9
+        _se_min  = int(_h_se.min()) if len(_h_se) else 9
+    else:
+        _fe_q1, _fe_q3, _fe_mode, _fe_min = 9, 11, 10, 8
+        _se_q1, _se_q3, _se_mode, _se_min = 9, 11, 10, 9
 
     # Productos de interés (multiselect — tomar moda)
     if "productos_interes" in enc.columns:
@@ -502,22 +522,67 @@ if pagina == "🏠 Resumen Ejecutivo":
             </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    _u_cols2 = st.columns(4)
-    _uni_cards_2 = [
-        ("Visita principalmente con", _acomp_top, f"{_acomp_pct}% de encuestados", "#e67e22"),
-        ("Horario de visita mediano", f"{int(_horario_med):02d}:00 h", "Hora pico de afluencia", "#e67e22"),
-        ("Calificación actual del parque", f"{_calif_med}/5", "Escala 1 (muy mala) a 5 (muy buena)", "#e74c3c"),
-        ("Producto / servicio más demandado", _prod_top, f"{_prod_pct}% lo prefiere", "#27ae60"),
-    ]
-    for col_u, (titulo, valor, sub, color) in zip(_u_cols2, _uni_cards_2):
-        with col_u:
-            st.markdown(f"""
-            <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
-                        border-top:4px solid {color};text-align:center;min-height:110px;">
-                <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">{titulo}</div>
-                <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;line-height:1.2;">{valor}</div>
-                <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{sub}</div>
-            </div>""", unsafe_allow_html=True)
+    _cu1, _cu2, _cu3, _cu4 = st.columns(4)
+
+    # Tarjeta 1: acompañante
+    with _cu1:
+        st.markdown(f"""
+        <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
+                    border-top:4px solid #e67e22;text-align:center;min-height:130px;">
+            <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Visita principalmente con</div>
+            <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_acomp_top}</div>
+            <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_acomp_pct}% de encuestados</div>
+        </div>""", unsafe_allow_html=True)
+
+    # Tarjeta 2: horario semana vs fin de semana
+    with _cu2:
+        st.markdown(f"""
+        <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
+                    border-top:4px solid #e67e22;min-height:130px;">
+            <div style="font-size:0.72rem;color:#666;margin-bottom:0.4rem;text-align:center;">
+                Horario de visita por tipo de día
+            </div>
+            <table style="width:100%;font-size:0.78rem;border-collapse:collapse;">
+                <tr>
+                    <td style="color:#555;padding:0.15rem 0;">📅 Lun–Vie</td>
+                    <td style="font-weight:700;color:#1a3a5c;text-align:right;">
+                        {_se_q1:02d}:00–{_se_q3:02d}:00 h</td>
+                </tr>
+                <tr>
+                    <td style="color:#888;font-size:0.72rem;padding-bottom:0.3rem;">
+                        Moda: {_se_mode:02d}:00 h · desde las {_se_min:02d}:00 h</td>
+                </tr>
+                <tr>
+                    <td style="color:#555;padding:0.15rem 0;">🏖️ Sáb–Dom</td>
+                    <td style="font-weight:700;color:#1a3a5c;text-align:right;">
+                        {_fe_q1:02d}:00–{_fe_q3:02d}:00 h</td>
+                </tr>
+                <tr>
+                    <td style="color:#888;font-size:0.72rem;">
+                        Moda: {_fe_mode:02d}:00 h · desde las {_fe_min:02d}:00 h</td>
+                </tr>
+            </table>
+        </div>""", unsafe_allow_html=True)
+
+    # Tarjeta 3: calificación
+    with _cu3:
+        st.markdown(f"""
+        <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
+                    border-top:4px solid #e74c3c;text-align:center;min-height:130px;">
+            <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Calificación actual del parque</div>
+            <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_calif_med}/5</div>
+            <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">Escala 1 (muy mala) a 5 (muy buena)</div>
+        </div>""", unsafe_allow_html=True)
+
+    # Tarjeta 4: producto
+    with _cu4:
+        st.markdown(f"""
+        <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
+                    border-top:4px solid #27ae60;text-align:center;min-height:130px;">
+            <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Producto / servicio más demandado</div>
+            <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_prod_top}</div>
+            <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_prod_pct}% lo prefiere</div>
+        </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("**Actitudes hacia los kioskos comerciales**")
