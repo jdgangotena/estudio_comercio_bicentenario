@@ -469,23 +469,34 @@ if pagina == "🏠 Resumen Ejecutivo":
     # Horario semana vs fin de semana
     _FINDE  = {"sábado", "sabado", "domingo"}
     _SEMANA = {"lunes", "martes", "miércoles", "miercoles", "jueves", "viernes"}
-    def _es_tipo(fila, target):
-        if not isinstance(fila, str): return False
-        return bool({p.strip().lower() for p in fila.split(",")} & target)
+    def _clasifica_dia(fila):
+        if not isinstance(fila, str): return None
+        dias = {p.strip().lower() for p in fila.split(",")}
+        tiene_semana = bool(dias & _SEMANA)
+        tiene_finde  = bool(dias & _FINDE)
+        if tiene_semana and tiene_finde: return "Ambos"
+        if tiene_semana: return "Lun–Vie (exclusivo)"
+        if tiene_finde:  return "Sáb–Dom (exclusivo)"
+        return None
+
     if "dias_visita" in enc.columns and "horario_visita" in enc.columns:
-        _mask_fe = enc["dias_visita"].apply(lambda x: _es_tipo(x, _FINDE))
-        _mask_se = enc["dias_visita"].apply(lambda x: _es_tipo(x, _SEMANA))
-        _h_fe = enc.loc[_mask_fe, "horario_visita"].dropna()
-        _h_se = enc.loc[_mask_se, "horario_visita"].dropna()
-        _fe_q1, _fe_q3 = int(_h_fe.quantile(0.25)), int(_h_fe.quantile(0.75))
-        _se_q1, _se_q3 = int(_h_se.quantile(0.25)), int(_h_se.quantile(0.75))
-        _fe_mode = int(_h_fe.mode().iloc[0]) if len(_h_fe) else 10
-        _se_mode = int(_h_se.mode().iloc[0]) if len(_h_se) else 10
-        _fe_min  = int(_h_fe.min()) if len(_h_fe) else 9
-        _se_min  = int(_h_se.min()) if len(_h_se) else 9
+        _tipo_dia_series = enc["dias_visita"].apply(_clasifica_dia)
+        _h_se = enc.loc[_tipo_dia_series == "Lun–Vie (exclusivo)", "horario_visita"].dropna()
+        _h_fe = enc.loc[_tipo_dia_series == "Sáb–Dom (exclusivo)", "horario_visita"].dropna()
+        # Rangos intercuartílicos de grupos exclusivos
+        _se_q1  = int(_h_se.quantile(0.25)) if len(_h_se) else 9
+        _se_q3  = int(_h_se.quantile(0.75)) if len(_h_se) else 13
+        _se_mode= int(_h_se.mode().iloc[0]) if len(_h_se) else 10
+        _se_min = int(_h_se.min())           if len(_h_se) else 4
+        _fe_q1  = int(_h_fe.quantile(0.25)) if len(_h_fe) else 10
+        _fe_q3  = int(_h_fe.quantile(0.75)) if len(_h_fe) else 12
+        _fe_mode= int(_h_fe.mode().iloc[0]) if len(_h_fe) else 10
+        _fe_min = int(_h_fe.min())           if len(_h_fe) else 6
     else:
-        _fe_q1, _fe_q3, _fe_mode, _fe_min = 9, 11, 10, 8
-        _se_q1, _se_q3, _se_mode, _se_min = 9, 11, 10, 9
+        _h_se = pd.Series(dtype=float)
+        _h_fe = pd.Series(dtype=float)
+        _se_q1, _se_q3, _se_mode, _se_min = 9, 13, 10, 4
+        _fe_q1, _fe_q3, _fe_mode, _fe_min = 10, 12, 10, 6
 
     # Productos de interés (multiselect — tomar moda)
     if "productos_interes" in enc.columns:
@@ -534,32 +545,32 @@ if pagina == "🏠 Resumen Ejecutivo":
             <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_acomp_pct}% de encuestados</div>
         </div>""", unsafe_allow_html=True)
 
-    # Tarjeta 2: horario semana vs fin de semana
+    # Tarjeta 2: horario semana vs fin de semana (grupos exclusivos)
     with _cu2:
         st.markdown(f"""
         <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
                     border-top:4px solid #e67e22;min-height:130px;">
             <div style="font-size:0.72rem;color:#666;margin-bottom:0.4rem;text-align:center;">
-                Horario de visita por tipo de día
+                Horario de visita por tipo de día <span style="font-size:0.65rem;">(grupos exclusivos)</span>
             </div>
-            <table style="width:100%;font-size:0.78rem;border-collapse:collapse;">
+            <table style="width:100%;font-size:0.76rem;border-collapse:collapse;">
                 <tr>
-                    <td style="color:#555;padding:0.15rem 0;">📅 Lun–Vie</td>
+                    <td style="color:#555;padding:0.1rem 0;font-weight:600;">📅 Lun–Vie (n={len(_h_se)})</td>
                     <td style="font-weight:700;color:#1a3a5c;text-align:right;">
                         {_se_q1:02d}:00–{_se_q3:02d}:00 h</td>
                 </tr>
                 <tr>
-                    <td style="color:#888;font-size:0.72rem;padding-bottom:0.3rem;">
-                        Moda: {_se_mode:02d}:00 h · desde las {_se_min:02d}:00 h</td>
+                    <td colspan="2" style="color:#888;font-size:0.68rem;padding-bottom:0.3rem;">
+                        Rango amplio · desde {_se_min:02d}:00 h · pico {_se_mode:02d}:00 h</td>
                 </tr>
                 <tr>
-                    <td style="color:#555;padding:0.15rem 0;">🏖️ Sáb–Dom</td>
+                    <td style="color:#555;padding:0.1rem 0;font-weight:600;">🏖️ Sáb–Dom (n={len(_h_fe)})</td>
                     <td style="font-weight:700;color:#1a3a5c;text-align:right;">
                         {_fe_q1:02d}:00–{_fe_q3:02d}:00 h</td>
                 </tr>
                 <tr>
-                    <td style="color:#888;font-size:0.72rem;">
-                        Moda: {_fe_mode:02d}:00 h · desde las {_fe_min:02d}:00 h</td>
+                    <td colspan="2" style="color:#888;font-size:0.68rem;">
+                        Más concentrado · desde {_fe_min:02d}:00 h · pico {_fe_mode:02d}:00 h</td>
                 </tr>
             </table>
         </div>""", unsafe_allow_html=True)
@@ -906,6 +917,69 @@ elif pagina == "📊 Análisis Univariado":
         top_franja, pct_franja = _top_categoria(enc["rango_horario"]) if "rango_horario" in enc.columns else ("", 0)
         _insight(f"La franja de mayor afluencia es **{top_franja}** ({pct_franja}%), información "
                  f"clave para definir el horario de atención de los kioskos.")
+
+        # --- Análisis cruzado: horario × tipo de día (grupos exclusivos) ---
+        if "dias_visita" in enc.columns and "horario_visita" in enc.columns:
+            st.markdown("#### Horario de visita según tipo de día (grupos exclusivos)")
+            _FINDE_u  = {"sábado", "sabado", "domingo"}
+            _SEMANA_u = {"lunes", "martes", "miércoles", "miercoles", "jueves", "viernes"}
+            def _tipo_dia_excl(fila):
+                if not isinstance(fila, str): return None
+                dias = {p.strip().lower() for p in fila.split(",")}
+                tiene_s = bool(dias & _SEMANA_u)
+                tiene_f = bool(dias & _FINDE_u)
+                if tiene_s and tiene_f: return "Ambos días"
+                if tiene_s: return "Solo Lun–Vie"
+                if tiene_f: return "Solo Sáb–Dom"
+                return None
+            _enc_hor = enc[["dias_visita", "horario_visita"]].copy()
+            _enc_hor["tipo_dia"] = _enc_hor["dias_visita"].apply(_tipo_dia_excl)
+            _enc_hor = _enc_hor.dropna(subset=["tipo_dia", "horario_visita"])
+            _ORDER_TIPO = ["Solo Lun–Vie", "Ambos días", "Solo Sáb–Dom"]
+            _COLORS_TIPO = {"Solo Lun–Vie": "#2980b9", "Ambos días": "#8e44ad", "Solo Sáb–Dom": "#e67e22"}
+            import plotly.graph_objects as _go
+            _fig_box = _go.Figure()
+            for _label in _ORDER_TIPO:
+                _vals = _enc_hor.loc[_enc_hor["tipo_dia"] == _label, "horario_visita"]
+                if len(_vals) == 0:
+                    continue
+                _fig_box.add_trace(_go.Box(
+                    y=_vals,
+                    name=f"{_label} (n={len(_vals)})",
+                    marker_color=_COLORS_TIPO[_label],
+                    boxpoints="all",
+                    jitter=0.35,
+                    pointpos=0,
+                    marker=dict(size=4, opacity=0.45),
+                    line_width=2,
+                ))
+            _hr_ticks = list(range(4, 18))
+            _fig_box.update_layout(
+                yaxis_title="Hora de visita",
+                yaxis=dict(
+                    tickmode="array",
+                    tickvals=_hr_ticks,
+                    ticktext=[f"{h:02d}:00" for h in _hr_ticks],
+                    range=[3, 18],
+                ),
+                showlegend=False,
+                height=380,
+                margin=dict(l=40, r=20, t=30, b=40),
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+            )
+            _fig_box.update_xaxes(showgrid=False)
+            _fig_box.update_yaxes(gridcolor="#eeeeee")
+            st.plotly_chart(_fig_box, width="stretch")
+            _insight(
+                "Los visitantes **exclusivos de lunes a viernes** (n=43) muestran mayor dispersión horaria "
+                "(Q75≈13:00 h), con algunos llegando desde las 04:00 h (deporte temprano) y otros "
+                "en la tarde. Los visitantes **exclusivos de sábado-domingo** (n=100) son más homogéneos "
+                "(Q25=10:00, Q75=12:00 h) y concentran su llegada en la mañana. "
+                "Ambos grupos reportan 10:00 h como la hora más frecuente —resultado esperable cuando "
+                "la encuesta capta una sola hora 'típica' por persona.",
+                significativo=None
+            )
 
     elif variable == "Género":
         col1, col2 = st.columns([1, 1])
