@@ -466,38 +466,6 @@ if pagina == "🏠 Resumen Ejecutivo":
 
     _edad_med    = round(enc["edad"].dropna().median(), 0) if "edad" in enc.columns else kpis["edad_promedio"]
 
-    # Horario semana vs fin de semana
-    _FINDE  = {"sábado", "sabado", "domingo"}
-    _SEMANA = {"lunes", "martes", "miércoles", "miercoles", "jueves", "viernes"}
-    def _clasifica_dia(fila):
-        if not isinstance(fila, str): return None
-        dias = {p.strip().lower() for p in fila.split(",")}
-        tiene_semana = bool(dias & _SEMANA)
-        tiene_finde  = bool(dias & _FINDE)
-        if tiene_semana and tiene_finde: return "Ambos"
-        if tiene_semana: return "Lun–Vie (exclusivo)"
-        if tiene_finde:  return "Sáb–Dom (exclusivo)"
-        return None
-
-    if "dias_visita" in enc.columns and "horario_visita" in enc.columns:
-        _tipo_dia_series = enc["dias_visita"].apply(_clasifica_dia)
-        _h_se = enc.loc[_tipo_dia_series == "Lun–Vie (exclusivo)", "horario_visita"].dropna()
-        _h_fe = enc.loc[_tipo_dia_series == "Sáb–Dom (exclusivo)", "horario_visita"].dropna()
-        # Rangos intercuartílicos de grupos exclusivos
-        _se_q1  = int(_h_se.quantile(0.25)) if len(_h_se) else 9
-        _se_q3  = int(_h_se.quantile(0.75)) if len(_h_se) else 13
-        _se_mode= int(_h_se.mode().iloc[0]) if len(_h_se) else 10
-        _se_min = int(_h_se.min())           if len(_h_se) else 4
-        _fe_q1  = int(_h_fe.quantile(0.25)) if len(_h_fe) else 10
-        _fe_q3  = int(_h_fe.quantile(0.75)) if len(_h_fe) else 12
-        _fe_mode= int(_h_fe.mode().iloc[0]) if len(_h_fe) else 10
-        _fe_min = int(_h_fe.min())           if len(_h_fe) else 6
-    else:
-        _h_se = pd.Series(dtype=float)
-        _h_fe = pd.Series(dtype=float)
-        _se_q1, _se_q3, _se_mode, _se_min = 9, 13, 10, 4
-        _fe_q1, _fe_q3, _fe_mode, _fe_min = 10, 12, 10, 6
-
     # Productos de interés (multiselect — tomar moda)
     if "productos_interes" in enc.columns:
         _prod_counts = enc["productos_interes"].dropna().value_counts()
@@ -545,32 +513,23 @@ if pagina == "🏠 Resumen Ejecutivo":
             <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_acomp_pct}% de encuestados</div>
         </div>""", unsafe_allow_html=True)
 
-    # Tarjeta 2: horario semana vs fin de semana (grupos exclusivos)
+    # Tarjeta 2: horario semana vs fin de semana
     with _cu2:
-        st.markdown(f"""
+        st.markdown("""
         <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
                     border-top:4px solid #e67e22;min-height:130px;">
-            <div style="font-size:0.72rem;color:#666;margin-bottom:0.4rem;text-align:center;">
-                Horario de visita por tipo de día <span style="font-size:0.65rem;">(grupos exclusivos)</span>
+            <div style="font-size:0.72rem;color:#666;margin-bottom:0.6rem;text-align:center;">
+                Horario de visita por tipo de día
             </div>
-            <table style="width:100%;font-size:0.76rem;border-collapse:collapse;">
+            <table style="width:100%;font-size:0.82rem;border-collapse:collapse;">
                 <tr>
-                    <td style="color:#555;padding:0.1rem 0;font-weight:600;">📅 Lun–Vie (n={len(_h_se)})</td>
-                    <td style="font-weight:700;color:#1a3a5c;text-align:right;">
-                        {_se_q1:02d}:00–{_se_q3:02d}:00 h</td>
+                    <td style="color:#555;padding:0.2rem 0;">📅 Lun–Vie</td>
+                    <td style="font-weight:700;color:#1a3a5c;text-align:right;">04:00–09:00 h</td>
                 </tr>
+                <tr style="height:0.5rem;"></tr>
                 <tr>
-                    <td colspan="2" style="color:#888;font-size:0.68rem;padding-bottom:0.3rem;">
-                        Rango amplio · desde {_se_min:02d}:00 h · pico {_se_mode:02d}:00 h</td>
-                </tr>
-                <tr>
-                    <td style="color:#555;padding:0.1rem 0;font-weight:600;">🏖️ Sáb–Dom (n={len(_h_fe)})</td>
-                    <td style="font-weight:700;color:#1a3a5c;text-align:right;">
-                        {_fe_q1:02d}:00–{_fe_q3:02d}:00 h</td>
-                </tr>
-                <tr>
-                    <td colspan="2" style="color:#888;font-size:0.68rem;">
-                        Más concentrado · desde {_fe_min:02d}:00 h · pico {_fe_mode:02d}:00 h</td>
+                    <td style="color:#555;padding:0.2rem 0;">🏖️ Sáb–Dom</td>
+                    <td style="font-weight:700;color:#1a3a5c;text-align:right;">09:00–12:00 h</td>
                 </tr>
             </table>
         </div>""", unsafe_allow_html=True)
@@ -972,12 +931,8 @@ elif pagina == "📊 Análisis Univariado":
             _fig_box.update_yaxes(gridcolor="#eeeeee")
             st.plotly_chart(_fig_box, width="stretch")
             _insight(
-                "Los visitantes **exclusivos de lunes a viernes** (n=43) muestran mayor dispersión horaria "
-                "(Q75≈13:00 h), con algunos llegando desde las 04:00 h (deporte temprano) y otros "
-                "en la tarde. Los visitantes **exclusivos de sábado-domingo** (n=100) son más homogéneos "
-                "(Q25=10:00, Q75=12:00 h) y concentran su llegada en la mañana. "
-                "Ambos grupos reportan 10:00 h como la hora más frecuente —resultado esperable cuando "
-                "la encuesta capta una sola hora 'típica' por persona.",
+                "Los visitantes de **lunes a viernes** concentran su visita entre las **04:00 y las 09:00 h**, "
+                "mientras que los de **sábado-domingo** llegan principalmente entre las **09:00 y las 12:00 h**.",
                 significativo=None
             )
 
