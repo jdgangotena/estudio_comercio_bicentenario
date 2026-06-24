@@ -51,7 +51,7 @@ from models.kiosko_model import (
     _max_kioskos_por_longitud, _ancho_util_por_kiosko,
     assign_giros, commercial_distance_analysis,
     fig_distribucion_comercial, tabla_distribucion_comercial,
-    fig_trafico_proyeccion, fig_demanda_vs_plan,
+    fig_trafico_parque_total, fig_demanda_vs_plan_parque,
     fig_plan_fases, tabla_plan_fases,
     fig_demanda_por_giro, demanda_por_giro,
 )
@@ -1992,7 +1992,7 @@ elif pagina == "🏪 Modelo comercial":
         La demanda de kioskos supera con creces la oferta planeada — lo que garantiza viabilidad comercial.
         </div>
         """, unsafe_allow_html=True)
-        st.plotly_chart(fig_trafico_proyeccion(), width="stretch")
+        st.plotly_chart(fig_trafico_parque_total(stats), width="stretch")
 
         # Demanda vs. plan vs. límite urbano
         st.markdown('<p class="section-header">Demanda por kioskos vs. plan de implementación</p>',
@@ -2014,7 +2014,7 @@ elif pagina == "🏪 Modelo comercial":
         </div>
         """, unsafe_allow_html=True)
 
-        st.plotly_chart(fig_demanda_vs_plan(), width="stretch")
+        st.plotly_chart(fig_demanda_vs_plan_parque(stats, enc), width="stretch")
 
         st.markdown("---")
 

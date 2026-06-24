@@ -647,101 +647,133 @@ def _kioskos_por_demanda_pura(consumidores_dia: int) -> int:
     return max(1, round(consumidores_dia / cap_dia))
 
 
-def fig_trafico_proyeccion() -> go.Figure:
-    """Área apilada: tráfico peatonal diario en el bulevar por categoría, 2025→2035."""
-    años = sorted(PROYECCION_PARAMS["trafico_boulevard_dia"].keys())
-    trafico_data = PROYECCION_PARAMS["trafico_boulevard_dia"]
-    categorias = list(trafico_data[años[0]].keys())
-    cat_colors = {
-        "Deportistas / Salud":   "#27ae60",
-        "Familias / Paseos":     "#3498db",
-        "Residentes del sector": "#8e44ad",
-        "Usuarios metro":        "#e74c3c",
-    }
+def fig_trafico_parque_total(estadisticas: dict) -> go.Figure:
+    """
+    Visitantes diarios totales del Parque Bicentenario 2025→2036.
+    Arranca desde el promedio real 2025 (estadísticas registradas) y crece con
+    la población del sector. El metro (Bicentenario + Andalucía) se suma desde 2029.
+    """
+    total_anual_2025 = sum(
+        df["total"].sum() for df in estadisticas.values() if "total" in df.columns
+    )
+    diario_2025 = max(1, round(total_anual_2025 / 365))
+
+    pop     = PROYECCION_PARAMS["poblacion_sector_hab"]
+    pop_base = pop[min(pop.keys())]          # 142,034 hab (2026)
+    metro_d  = PROYECCION_PARAMS["metro_pasajeros_dia"]
+
+    años = [2025] + sorted(pop.keys())
+
+    vis_parque = {2025: diario_2025}
+    for a in sorted(pop.keys()):
+        vis_parque[a] = round(diario_2025 * pop[a] / pop_base)
+
+    vis_metro = {a: metro_d.get(a, 0) for a in años}
+    totales   = {a: vis_parque[a] + vis_metro[a] for a in años}
+    años_str  = [str(a) for a in años]
+
     fig = go.Figure()
-    for cat in categorias:
-        fig.add_trace(go.Scatter(
-            name=cat,
-            x=[str(a) for a in años],
-            y=[trafico_data[a].get(cat, 0) for a in años],
-            mode="lines+markers",
-            stackgroup="one",
-            fillcolor=cat_colors.get(cat, "#999"),
-            line=dict(color=cat_colors.get(cat, "#999"), width=2),
-            marker=dict(size=7),
-        ))
-    # Total en cada año
-    for año in años:
-        total = sum(trafico_data[año].values())
-        fig.add_annotation(x=str(año), y=total * 1.04,
-                           text=f"<b>{total:,}/día</b>",
-                           showarrow=False, font=dict(size=11, color="#2c3e50"))
+    fig.add_trace(go.Scatter(
+        name="Visitantes parque",
+        x=años_str, y=[vis_parque[a] for a in años],
+        mode="lines+markers", stackgroup="one",
+        fillcolor="rgba(41,128,185,0.55)",
+        line=dict(color="#2980b9", width=2), marker=dict(size=7),
+    ))
+    fig.add_trace(go.Scatter(
+        name="Metro (Bicentenario + Andalucía)",
+        x=años_str, y=[vis_metro[a] for a in años],
+        mode="lines+markers", stackgroup="one",
+        fillcolor="rgba(142,68,173,0.55)",
+        line=dict(color="#8e44ad", width=2), marker=dict(size=7),
+    ))
+    for a in años:
+        fig.add_annotation(
+            x=str(a), y=totales[a] * 1.05,
+            text=f"<b>{totales[a]:,}/día</b>",
+            showarrow=False, font=dict(size=10, color="#2c3e50"),
+        )
+    fig.add_vline(
+        x="2025",
+        line=dict(color="#27ae60", dash="dot", width=1.5),
+        annotation_text="Dato real 2025",
+        annotation_position="top right",
+        annotation_font=dict(color="#27ae60", size=10),
+    )
     fig.update_layout(
-        title=dict(text="Proyección de tráfico peatonal diario – Bulevar Av. Amazonas",
+        title=dict(text="Visitantes diarios totales – Parque Bicentenario (2025–2036)",
                    font=dict(size=15), x=0.02),
         plot_bgcolor="white", paper_bgcolor="white",
+        font=dict(family="Arial", size=12),
         xaxis=dict(title="Año", showgrid=False),
         yaxis=dict(title="Personas / día", gridcolor="#f0f0f0"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
-        font=dict(family="Arial", size=12),
         margin=dict(l=50, r=20, t=80, b=40),
     )
     return fig
 
 
-def fig_demanda_vs_plan() -> go.Figure:
+def fig_demanda_vs_plan_parque(estadisticas: dict, df_encuesta: pd.DataFrame) -> go.Figure:
     """
-    Barras: consumidores/día y kioskos por demanda pura vs. plan recomendado.
-    Muestra por qué el límite urbano (1/200m) es la restricción real, no la demanda.
+    Consumidores/día del parque completo vs. kioskos por demanda pura vs. plan (10→25).
+    Arranca desde el dato real 2025 y crece con población + metro.
     """
-    años = sorted(PROYECCION_PARAMS["trafico_boulevard_dia"].keys())
+    rates    = _conversion_rates(df_encuesta)
+    p        = KIOSKO_PARAMS
+    cap_dia  = p["horas_finde"] * p["max_atendidos_hora"] * p["ocupacion_objetivo"]
+
+    total_anual_2025 = sum(
+        df["total"].sum() for df in estadisticas.values() if "total" in df.columns
+    )
+    diario_2025 = max(1, round(total_anual_2025 / 365))
+
+    pop      = PROYECCION_PARAMS["poblacion_sector_hab"]
+    pop_base = pop[min(pop.keys())]
+    metro_d  = PROYECCION_PARAMS["metro_pasajeros_dia"]
+
+    años = sorted(PLAN_FASES.keys())   # 2026, 2029, 2033, 2036
+
+    vis_total    = {}
+    for a in años:
+        base  = round(diario_2025 * pop.get(a, pop_base) / pop_base)
+        metro = metro_d.get(a, 0)
+        vis_total[a] = base + metro
+
+    consumidores = {a: round(vis_total[a] * rates["tasa_consumo"]) for a in años}
+    k_demanda    = {a: max(1, round(consumidores[a] / cap_dia))     for a in años}
+    k_plan       = {a: sum(PLAN_FASES[a]["kioskos"].values())       for a in años}
+
     años_str = [str(a) for a in años]
-    consumidores = [_consumidores_dia_boulevard(a) for a in años]
-    k_demanda   = [_kioskos_por_demanda_pura(c) for c in consumidores]
-    k_plan_z1   = [PLAN_FASES[a]["kioskos"]["Zona 1 – Bulevar Av. Amazonas"] for a in años]
-    limite_urbano = ZONE_DIMENSIONS["Zona 1 – Bulevar Av. Amazonas"]["longitud_m"] \
-                    // PROYECCION_PARAMS["metros_entre_kioskos_bulevar"]
 
     fig = go.Figure()
-    # Barras de consumidores (eje izquierdo)
     fig.add_trace(go.Bar(
-        name="Consumidores/día (bulevar)",
-        x=años_str, y=consumidores,
-        marker_color="#3498db", opacity=0.75,
-        yaxis="y",
-        text=consumidores, textposition="outside",
-        textfont=dict(size=10),
+        name="Consumidores/día (parque completo)",
+        x=años_str, y=[consumidores[a] for a in años],
+        marker_color="#3498db", opacity=0.75, yaxis="y",
+        text=[consumidores[a] for a in años],
+        textposition="outside", textfont=dict(size=10),
     ))
-    # Kioskos por demanda pura (eje derecho)
     fig.add_trace(go.Scatter(
         name="Kioskos – demanda pura",
-        x=años_str, y=k_demanda,
+        x=años_str, y=[k_demanda[a] for a in años],
         mode="lines+markers",
         marker=dict(color="#e74c3c", size=10),
         line=dict(color="#e74c3c", width=2),
         yaxis="y2",
     ))
-    # Plan recomendado
     fig.add_trace(go.Scatter(
-        name="Kioskos – plan recomendado",
-        x=años_str, y=k_plan_z1,
-        mode="lines+markers",
+        name="Kioskos – plan recomendado (3 zonas)",
+        x=años_str, y=[k_plan[a] for a in años],
+        mode="lines+markers+text",
+        text=[str(k_plan[a]) for a in años],
+        textposition="top center",
+        textfont=dict(size=11, color="#27ae60"),
         marker=dict(color="#27ae60", size=10, symbol="diamond"),
         line=dict(color="#27ae60", width=2.5, dash="dash"),
         yaxis="y2",
     ))
-    # Línea de límite urbano
-    fig.add_shape(type="line",
-                  x0=años_str[0], x1=años_str[-1], y0=limite_urbano, y1=limite_urbano,
-                  xref="x", yref="y2",
-                  line=dict(color="#f39c12", dash="dot", width=2))
-    fig.add_annotation(x=años_str[-1], y=limite_urbano + 0.3,
-                       xref="x", yref="y2",
-                       text=f"Límite urbano: {limite_urbano} kioskos (1/200m)",
-                       showarrow=False, font=dict(size=9, color="#f39c12"),
-                       xanchor="right")
     fig.update_layout(
-        title=dict(text="Demanda vs. plan de kioskos – Bulevar Av. Amazonas",
+        title=dict(text="Demanda vs. plan de kioskos – Parque Bicentenario (todas las zonas)",
                    font=dict(size=15), x=0.02),
         plot_bgcolor="white", paper_bgcolor="white",
         xaxis=dict(title="Año", showgrid=False),
