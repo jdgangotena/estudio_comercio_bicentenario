@@ -774,6 +774,12 @@ if pagina == "🏠 Resumen Ejecutivo":
         </div>
         """, unsafe_allow_html=True)
 
+    st.markdown("---")
+    st.markdown("#### Propuesta de implantación — Parque Bicentenario")
+    st.image("src/img/implantación_parque.jpg", use_container_width=True)
+    st.markdown("#### Sectores a intervenir")
+    st.image("src/img/implantación_circulos.jpg", use_container_width=True)
+
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<p class="section-header">Giros comerciales propuestos y respaldo de la encuesta</p>',
                 unsafe_allow_html=True)
@@ -795,12 +801,6 @@ if pagina == "🏠 Resumen Ejecutivo":
             """, unsafe_allow_html=True)
     with col_dem:
         st.plotly_chart(fig_demanda_por_giro(enc), width="stretch")
-
-    st.markdown("---")
-    st.markdown("#### Propuesta de implantación — Parque Bicentenario")
-    st.image("src/img/implantación_parque.jpg", use_container_width=True)
-    st.markdown("#### Sectores a intervenir")
-    st.image("src/img/implantación_circulos.jpg", use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
