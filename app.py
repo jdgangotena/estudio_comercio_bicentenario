@@ -796,6 +796,10 @@ if pagina == "🏠 Resumen Ejecutivo":
     with col_dem:
         st.plotly_chart(fig_demanda_por_giro(enc), width="stretch")
 
+    st.markdown("---")
+    st.markdown("#### Propuesta de implantación — Parque Bicentenario")
+    st.image("src/img/implantación_parque.jpg", use_container_width=True)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SECCIÓN 2: ANÁLISIS UNIVARIADO
