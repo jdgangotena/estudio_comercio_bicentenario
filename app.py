@@ -722,7 +722,12 @@ if pagina == "🏠 Resumen Ejecutivo":
             </div>
             """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        st.plotly_chart(fig_h1_distribucion(_h1), width="stretch")
+    with col_g2:
+        st.plotly_chart(fig_h2_distribucion(_h2), width="stretch")
+
     _insight(
         f"<b>H1 (50 kioskos SHOT):</b> {_h1['conclusion']} &nbsp;&nbsp; "
         f"<b>H2 (aprobación ciudadana):</b> {_h2['conclusion']}",
