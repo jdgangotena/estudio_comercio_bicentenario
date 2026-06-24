@@ -50,17 +50,27 @@ def _z_dist_fig(z_stat: float, alpha: float, tails: str = "right",
     ))
 
     # Z crítico
-    fig.add_vline(x=z_crit, line=dict(color="#e74c3c", dash="dash", width=2),
-                  annotation_text=f"Z crítico = {z_crit:.3f}",
-                  annotation_position="top left" if tails == "left" else "top right",
-                  annotation_font=dict(color="#e74c3c", size=11))
+    fig.add_vline(x=z_crit, line=dict(color="#e74c3c", dash="dash", width=2))
+    fig.add_annotation(
+        x=z_crit, y=1, xref="x", yref="paper",
+        text=f"Z crítico = {z_crit:.3f}",
+        showarrow=False,
+        xanchor="right" if tails == "left" else "left",
+        yanchor="bottom",
+        font=dict(color="#e74c3c", size=11),
+    )
 
     # Z estadístico
     z_clamp = max(-4.4, min(4.4, z_stat))
-    fig.add_vline(x=z_clamp, line=dict(color="#27ae60", dash="solid", width=2.5),
-                  annotation_text=f"Z = {z_stat:.3f}",
-                  annotation_position="top right" if tails == "right" else "top left",
-                  annotation_font=dict(color="#27ae60", size=12, family="Arial Bold"))
+    fig.add_vline(x=z_clamp, line=dict(color="#27ae60", dash="solid", width=2.5))
+    fig.add_annotation(
+        x=z_clamp, y=0.88, xref="x", yref="paper",
+        text=f"Z = {z_stat:.3f}",
+        showarrow=False,
+        xanchor="left" if tails == "right" else "right",
+        yanchor="bottom",
+        font=dict(color="#27ae60", size=12, family="Arial Bold"),
+    )
 
     fig.update_layout(
         title=dict(text=title, font=dict(size=14), x=0.02),
@@ -299,10 +309,13 @@ def fig_h2_proporciones(resultado: dict) -> go.Figure:
         textfont=dict(size=13),
     ))
     # Línea del 50%
-    fig.add_hline(y=n * p0, line=dict(color="#e67e22", dash="dot", width=2),
-                  annotation_text="Umbral H0: 50%",
-                  annotation_position="top right",
-                  annotation_font=dict(color="#e67e22", size=11))
+    fig.add_hline(y=n * p0, line=dict(color="#e67e22", dash="dot", width=2))
+    fig.add_annotation(
+        x=1, y=n * p0, xref="paper", yref="y",
+        text="Umbral H0: 50%",
+        showarrow=False, xanchor="right", yanchor="bottom",
+        font=dict(color="#e67e22", size=11),
+    )
 
     fig.update_layout(
         title=dict(text=f"Aprobación de kioskos — IC 95%: [{ci_low*100:.1f}%, {ci_high*100:.1f}%]",

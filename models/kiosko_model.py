@@ -693,12 +693,12 @@ def fig_trafico_parque_total(estadisticas: dict) -> go.Figure:
             text=f"<b>{totales[a]:,}/día</b>",
             showarrow=False, font=dict(size=10, color="#2c3e50"),
         )
-    fig.add_vline(
-        x="2025",
-        line=dict(color="#27ae60", dash="dot", width=1.5),
-        annotation_text="Dato real 2025",
-        annotation_position="top right",
-        annotation_font=dict(color="#27ae60", size=10),
+    fig.add_vline(x="2025", line=dict(color="#27ae60", dash="dot", width=1.5))
+    fig.add_annotation(
+        x="2025", y=1, xref="x", yref="paper",
+        text="Dato real 2025",
+        showarrow=False, xanchor="left", yanchor="bottom",
+        font=dict(color="#27ae60", size=10),
     )
     fig.update_layout(
         title=dict(text="Visitantes diarios totales – Parque Bicentenario (2025–2036)",
