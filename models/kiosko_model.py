@@ -649,49 +649,42 @@ def _kioskos_por_demanda_pura(consumidores_dia: int) -> int:
 
 def fig_trafico_parque_total(estadisticas: dict) -> go.Figure:
     """
-    Visitantes diarios totales del Parque Bicentenario 2025→2036.
-    Arranca desde el promedio real 2025 (estadísticas registradas) y crece con
-    la población del sector. El metro (Bicentenario + Andalucía) se suma desde 2029.
+    Visitantes diarios al Parque Bicentenario 2025→2036.
+    Arranca desde el promedio real 2025 y crece con la población del sector.
     """
     total_anual_2025 = sum(
         df["total"].sum() for df in estadisticas.values() if "total" in df.columns
     )
     diario_2025 = max(1, round(total_anual_2025 / 365))
 
-    pop     = PROYECCION_PARAMS["poblacion_sector_hab"]
-    pop_base = pop[min(pop.keys())]          # 142,034 hab (2026)
-    metro_d  = PROYECCION_PARAMS["metro_pasajeros_dia"]
+    pop      = PROYECCION_PARAMS["poblacion_sector_hab"]
+    pop_base = pop[min(pop.keys())]   # 142,034 hab (2026)
 
     años = [2025] + sorted(pop.keys())
 
-    vis_parque = {2025: diario_2025}
+    vis = {2025: diario_2025}
     for a in sorted(pop.keys()):
-        vis_parque[a] = round(diario_2025 * pop[a] / pop_base)
+        vis[a] = round(diario_2025 * pop[a] / pop_base)
 
-    vis_metro = {a: metro_d.get(a, 0) for a in años}
-    totales   = {a: vis_parque[a] + vis_metro[a] for a in años}
-    años_str  = [str(a) for a in años]
+    años_str = [str(a) for a in años]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         name="Visitantes parque",
-        x=años_str, y=[vis_parque[a] for a in años],
-        mode="lines+markers", stackgroup="one",
-        fillcolor="rgba(41,128,185,0.55)",
-        line=dict(color="#2980b9", width=2), marker=dict(size=7),
-    ))
-    fig.add_trace(go.Scatter(
-        name="Metro (Bicentenario + Andalucía)",
-        x=años_str, y=[vis_metro[a] for a in años],
-        mode="lines+markers", stackgroup="one",
-        fillcolor="rgba(142,68,173,0.55)",
-        line=dict(color="#8e44ad", width=2), marker=dict(size=7),
+        x=años_str, y=[vis[a] for a in años],
+        mode="lines+markers",
+        fill="tozeroy",
+        fillcolor="rgba(41,128,185,0.35)",
+        line=dict(color="#2980b9", width=2.5),
+        marker=dict(size=8),
     ))
     for a in años:
         fig.add_annotation(
-            x=str(a), y=totales[a] * 1.05,
-            text=f"<b>{totales[a]:,}/día</b>",
-            showarrow=False, font=dict(size=10, color="#2c3e50"),
+            x=str(a), y=vis[a],
+            text=f"<b>{vis[a]:,}/día</b>",
+            showarrow=False, yanchor="bottom",
+            font=dict(size=10, color="#2c3e50"),
+            yshift=8,
         )
     fig.add_vline(x="2025", line=dict(color="#27ae60", dash="dot", width=1.5))
     fig.add_annotation(
@@ -701,13 +694,13 @@ def fig_trafico_parque_total(estadisticas: dict) -> go.Figure:
         font=dict(color="#27ae60", size=10),
     )
     fig.update_layout(
-        title=dict(text="Visitantes diarios totales – Parque Bicentenario (2025–2036)",
+        title=dict(text="Visitantes diarios – Parque Bicentenario (2025–2036)",
                    font=dict(size=15), x=0.02),
         plot_bgcolor="white", paper_bgcolor="white",
         font=dict(family="Arial", size=12),
         xaxis=dict(title="Año", showgrid=False),
         yaxis=dict(title="Personas / día", gridcolor="#f0f0f0"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        showlegend=False,
         margin=dict(l=50, r=20, t=80, b=40),
     )
     return fig
@@ -740,7 +733,6 @@ def fig_demanda_vs_plan_parque(estadisticas: dict, df_encuesta: pd.DataFrame) ->
         vis_total[a] = base + metro
 
     consumidores = {a: round(vis_total[a] * rates["tasa_consumo"]) for a in años}
-    k_demanda    = {a: max(1, round(consumidores[a] / cap_dia))     for a in años}
     k_plan       = {a: sum(PLAN_FASES[a]["kioskos"].values())       for a in años}
 
     años_str = [str(a) for a in años]
@@ -750,16 +742,8 @@ def fig_demanda_vs_plan_parque(estadisticas: dict, df_encuesta: pd.DataFrame) ->
         name="Consumidores/día (parque completo)",
         x=años_str, y=[consumidores[a] for a in años],
         marker_color="#3498db", opacity=0.75, yaxis="y",
-        text=[consumidores[a] for a in años],
+        text=[f"{consumidores[a]:,}" for a in años],
         textposition="outside", textfont=dict(size=10),
-    ))
-    fig.add_trace(go.Scatter(
-        name="Kioskos – demanda pura",
-        x=años_str, y=[k_demanda[a] for a in años],
-        mode="lines+markers",
-        marker=dict(color="#e74c3c", size=10),
-        line=dict(color="#e74c3c", width=2),
-        yaxis="y2",
     ))
     fig.add_trace(go.Scatter(
         name="Kioskos – plan recomendado (3 zonas)",
