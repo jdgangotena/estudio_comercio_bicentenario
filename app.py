@@ -799,6 +799,8 @@ if pagina == "🏠 Resumen Ejecutivo":
     st.markdown("---")
     st.markdown("#### Propuesta de implantación — Parque Bicentenario")
     st.image("src/img/implantación_parque.jpg", use_container_width=True)
+    st.markdown("#### Sectores a intervenir")
+    st.image("src/img/implantación_circulos.jpg", use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
