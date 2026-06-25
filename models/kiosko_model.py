@@ -708,12 +708,11 @@ def fig_trafico_parque_total(estadisticas: dict) -> go.Figure:
 
 def fig_demanda_vs_plan_parque(estadisticas: dict, df_encuesta: pd.DataFrame) -> go.Figure:
     """
-    Consumidores/día del parque completo vs. kioskos por demanda pura vs. plan (10→25).
-    Arranca desde el dato real 2025 y crece con población + metro.
+    Consumidores/día del parque vs. plan de kioskos (10→25).
+    Usa exactamente la misma base de visitantes que fig_trafico_parque_total:
+    dato real 2025 creciendo con población, sin metro.
     """
-    rates    = _conversion_rates(df_encuesta)
-    p        = KIOSKO_PARAMS
-    cap_dia  = p["horas_finde"] * p["max_atendidos_hora"] * p["ocupacion_objetivo"]
+    rates = _conversion_rates(df_encuesta)
 
     total_anual_2025 = sum(
         df["total"].sum() for df in estadisticas.values() if "total" in df.columns
@@ -722,17 +721,12 @@ def fig_demanda_vs_plan_parque(estadisticas: dict, df_encuesta: pd.DataFrame) ->
 
     pop      = PROYECCION_PARAMS["poblacion_sector_hab"]
     pop_base = pop[min(pop.keys())]
-    metro_d  = PROYECCION_PARAMS["metro_pasajeros_dia"]
 
     años = sorted(PLAN_FASES.keys())   # 2026, 2029, 2033, 2036
 
-    vis_total    = {}
-    for a in años:
-        base  = round(diario_2025 * pop.get(a, pop_base) / pop_base)
-        metro = metro_d.get(a, 0)
-        vis_total[a] = base + metro
+    vis = {a: round(diario_2025 * pop.get(a, pop_base) / pop_base) for a in años}
 
-    consumidores = {a: round(vis_total[a] * rates["tasa_consumo"]) for a in años}
+    consumidores = {a: round(vis[a] * rates["tasa_consumo"]) for a in años}
     k_plan       = {a: sum(PLAN_FASES[a]["kioskos"].values())       for a in años}
 
     años_str = [str(a) for a in años]
