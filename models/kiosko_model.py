@@ -1272,21 +1272,73 @@ def fig_visitantes_vs_demanda(estadisticas: dict, df_encuesta: pd.DataFrame) -> 
     return fig
 
 
-def fig_ingresos_potenciales(estadisticas: dict, df_encuesta: pd.DataFrame) -> go.Figure:
+def fig_ingresos_diarios_zona(estadisticas: dict, df_encuesta: pd.DataFrame) -> go.Figure:
+    """Ingreso diario total por zona = consumidores/día × gasto promedio."""
     zona_stats = _zona_stats_consistentes(estadisticas, df_encuesta)
+    rates      = _conversion_rates(df_encuesta)
+    gasto      = rates["gasto_promedio_usd"]
     zona_names = list(ZONAS.keys())
-    short    = [z.split("–")[1].strip() if "–" in z else z for z in zona_names]
-    ingresos = [zona_stats[z]["ingresos_anuales_usd"] for z in zona_names]
+    short      = [z.split("–")[1].strip() if "–" in z else z for z in zona_names]
+    colores    = [ZONAS[z].get("color", PALETTE[i]) for i, z in enumerate(zona_names)]
+
+    ing_dia = [round(zona_stats[z]["visitantes_diarios"] * rates["tasa_consumo"] * gasto, 2)
+               for z in zona_names]
+
     fig = go.Figure(go.Bar(
-        x=short, y=ingresos,
-        text=[f"${i:,.0f}" for i in ingresos], textposition="outside",
-        marker_color=PALETTE[:len(zona_names)],
+        x=short, y=ing_dia,
+        text=[f"${v:,.2f}" for v in ing_dia],
+        textposition="outside",
+        marker_color=colores,
     ))
     fig.update_layout(
-        title=dict(text="Ingresos potenciales anuales por zona (USD)", font=dict(size=15), x=0.02),
+        title=dict(text=f"Ingreso diario por zona  (gasto prom. ${gasto:.2f})",
+                   font=dict(size=15), x=0.02),
         plot_bgcolor="white", paper_bgcolor="white", font=dict(family="Arial", size=13),
-        xaxis=dict(showgrid=False), yaxis=dict(title="USD/año", gridcolor="#f0f0f0"),
+        xaxis=dict(showgrid=False),
+        yaxis=dict(title="USD / día", gridcolor="#f0f0f0",
+                   range=[0, max(ing_dia) * 1.25]),
+        showlegend=False,
         margin=dict(l=40, r=20, t=70, b=40),
+    )
+    return fig
+
+
+def fig_ingresos_diarios_por_kiosko(estadisticas: dict,
+                                    df_encuesta: pd.DataFrame) -> go.Figure:
+    """Ingreso diario por kiosko en cada zona = ingreso_zona / n_kioskos (arranque 2026)."""
+    zona_stats = _zona_stats_consistentes(estadisticas, df_encuesta)
+    rates      = _conversion_rates(df_encuesta)
+    gasto      = rates["gasto_promedio_usd"]
+    fase1      = min(PLAN_FASES.keys())
+    zona_names = list(ZONAS.keys())
+    short      = [z.split("–")[1].strip() if "–" in z else z for z in zona_names]
+    colores    = [ZONAS[z].get("color", PALETTE[i]) for i, z in enumerate(zona_names)]
+
+    ing_por_kiosko = []
+    for z in zona_names:
+        ing_zona = zona_stats[z]["visitantes_diarios"] * rates["tasa_consumo"] * gasto
+        n_k      = PLAN_FASES[fase1]["kioskos"].get(z, 1)
+        ing_por_kiosko.append(round(ing_zona / n_k, 2))
+
+    n_labels = [f"({PLAN_FASES[fase1]['kioskos'].get(z,1)} kiosko{'s' if PLAN_FASES[fase1]['kioskos'].get(z,1)>1 else ''})"
+                for z in zona_names]
+
+    fig = go.Figure(go.Bar(
+        x=[f"{s}<br><sub>{n}</sub>" for s, n in zip(short, n_labels)],
+        y=ing_por_kiosko,
+        text=[f"${v:,.2f}" for v in ing_por_kiosko],
+        textposition="outside",
+        marker_color=colores,
+    ))
+    fig.update_layout(
+        title=dict(text=f"Ingreso diario por kiosko – arranque {fase1}  (gasto prom. ${gasto:.2f})",
+                   font=dict(size=15), x=0.02),
+        plot_bgcolor="white", paper_bgcolor="white", font=dict(family="Arial", size=13),
+        xaxis=dict(showgrid=False),
+        yaxis=dict(title="USD / kiosko / día", gridcolor="#f0f0f0",
+                   range=[0, max(ing_por_kiosko) * 1.25]),
+        showlegend=False,
+        margin=dict(l=40, r=20, t=70, b=60),
     )
     return fig
 

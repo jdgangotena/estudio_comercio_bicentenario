@@ -41,7 +41,7 @@ from analysis.hypothesis import (
 )
 from models.kiosko_model import (
     forecast_kioskos, fig_kioskos_por_zona,
-    fig_visitantes_vs_demanda, fig_ingresos_potenciales,
+    fig_visitantes_vs_demanda, fig_ingresos_diarios_zona, fig_ingresos_diarios_por_kiosko,
     tabla_resumen_forecast, ZONAS,
     ZONE_DIMENSIONS, KIOSKO_TIPOS,
     GIROS, GIRO_ROTATION, COMMERCIAL_PARAMS,
@@ -2097,7 +2097,11 @@ elif pagina == "🏪 Modelo comercial":
         with col_g2:
             st.plotly_chart(fig_visitantes_vs_demanda(stats, enc), width="stretch")
 
-        st.plotly_chart(fig_ingresos_potenciales(stats, enc), width="stretch")
+        col_ing1, col_ing2 = st.columns(2)
+        with col_ing1:
+            st.plotly_chart(fig_ingresos_diarios_zona(stats, enc), width="stretch")
+        with col_ing2:
+            st.plotly_chart(fig_ingresos_diarios_por_kiosko(stats, enc), width="stretch")
 
         with st.expander("⚙️ Parámetros del modelo de demanda"):
             cap = forecast["capacidad_kiosko"]
