@@ -1916,11 +1916,12 @@ elif pagina == "🏪 Modelo comercial":
         st.markdown('<p class="section-header">Rotación de giros por tipo de zona</p>',
                     unsafe_allow_html=True)
         tipo_nombres = {
-            "comercial_alta_densidad": "Bulevar comercial (familias, paseos)",
-            "eventos_espectaculos": "Arena de espectáculos (eventos)",
-            "deportivo": "Zona deportiva (canchas, pistas)",
+            "comercial_alta_densidad": "Bulevar Av. Amazonas",
         }
+        _tipos_activos = {ZONAS[z]["tipo"] for z in ZONAS}
         for tipo_key, rotation in GIRO_ROTATION.items():
+            if tipo_key not in _tipos_activos:
+                continue
             secuencia = " → ".join(f"{GIROS[g]['icono']} {g}" for g in rotation)
             st.markdown(f"""
             <div style="background:#f8f9fa;border-radius:8px;padding:0.8rem 1rem;margin-bottom:0.6rem;">
@@ -2021,12 +2022,13 @@ elif pagina == "🏪 Modelo comercial":
         with col_if2:
             st.plotly_chart(fig_ingresos_fases_por_kiosko(stats, enc), width="stretch")
 
-        # Tabla de fases
+        # Tabla de fases – columnas dinámicas para no depender del nombre exacto
         df_fases = tabla_plan_fases()
-        st.dataframe(df_fases[[
-            "Año", "Fase", "Hito", "Población (hab.)",
-            "Bulevar Av. Amazonas", "Total", "Contexto"
-        ]], width="stretch", hide_index=True)
+        _cols_fases_base = ["Año", "Hito", "Población (hab.)"]
+        _cols_kioskos = [c for c in df_fases.columns if c not in
+                         {"Año", "Fase", "Hito", "Población (hab.)", "Total", "Contexto"}]
+        st.dataframe(df_fases[_cols_fases_base + _cols_kioskos + ["Total", "Contexto"]],
+                     width="stretch", hide_index=True)
 
         st.markdown("---")
         st.markdown('<p class="section-header">Comparación: propuesta referencial (50 kioskos) vs. plan técnico 2036</p>',
