@@ -23,20 +23,6 @@ ZONE_DIMENSIONS = {
         "tipo_zona": "Bulevar peatonal",
         "color": "#2980b9",
     },
-    "Zona 2 – Arena de Espectáculos": {
-        "longitud_m": 150,
-        "ancho_m": 8,
-        "lados_disponibles": 1,          # solo un lado (frente a la arena)
-        "tipo_zona": "Pasaje lateral",
-        "color": "#e67e22",
-    },
-    "Zona 3 – Canchas Deportivas y Pistas": {
-        "longitud_m": 200,
-        "ancho_m": 8,
-        "lados_disponibles": 1,          # caminera, un lado
-        "tipo_zona": "Caminera deportiva",
-        "color": "#27ae60",
-    },
 }
 
 # ── Tipos de kiosko disponibles ────────────────────────────────────────────────
@@ -225,16 +211,14 @@ PLAN_FASES = {
     2026: {
         "fase": "Fase 1 – Implementación inicial",
         "contexto": (
-            "Apertura del proyecto. Bulevar ya activo con 142,034 hab. en el sector. "
-            "4 kioskos en el bulevar cubren la demanda actual y generan un corredor "
-            "comercial cada 500 m. Zonas 2 y 3 con 3 kioskos para validar operación."
+            "Apertura del proyecto. Bulevar activo con 142,034 hab. en el sector. "
+            "10 kioskos en el Bulevar Av. Amazonas (1 c/200m) cubren la demanda "
+            "actual y establecen el corredor comercial del parque."
         ),
         "poblacion_hab": 142_034,
         "hito": "🟢 Arranque del proyecto",
         "kioskos": {
-            "Zona 1 – Bulevar Av. Amazonas":        4,   # 1 c/500m – inicio conservador
-            "Zona 2 – Arena de Espectáculos":        3,
-            "Zona 3 – Canchas Deportivas y Pistas":  3,
+            "Zona 1 – Bulevar Av. Amazonas": 10,
         },
     },
     2029: {
@@ -242,29 +226,25 @@ PLAN_FASES = {
         "contexto": (
             "Apertura de las 2 nuevas estaciones de metro. El flujo de ~23,000 usuarios "
             "metro/día transforma el bulevar en corredor de movilidad urbana. "
-            "Se amplía a 6 kioskos en bulevar (1 c/333m) y 5 en cada zona activa."
+            "Se amplía a 16 kioskos (1 c/125m)."
         ),
         "poblacion_hab": 185_000,
         "hito": "🚇 Metro: estaciones Bicentenario + Andalucía",
         "kioskos": {
-            "Zona 1 – Bulevar Av. Amazonas":        6,
-            "Zona 2 – Arena de Espectáculos":        5,
-            "Zona 3 – Canchas Deportivas y Pistas":  5,
+            "Zona 1 – Bulevar Av. Amazonas": 16,
         },
     },
     2033: {
         "fase": "Fase 3 – Consolidación del nuevo polo urbano",
         "contexto": (
             "Rascacielos en funcionamiento. Edificabilidad hasta 40 pisos genera alta "
-            "densidad residencial y oficinas. ~248,000 hab. Bulevar con 8 kioskos "
-            "(1 c/250m). Demanda supera ampliamente la oferta planificada."
+            "densidad residencial y oficinas. ~248,000 hab. 20 kioskos en el bulevar "
+            "(1 c/100m). Demanda supera ampliamente la oferta planificada."
         ),
         "poblacion_hab": 248_000,
         "hito": "🏙️ Rascacielos y densificación urbana",
         "kioskos": {
-            "Zona 1 – Bulevar Av. Amazonas":        8,
-            "Zona 2 – Arena de Espectáculos":        6,
-            "Zona 3 – Canchas Deportivas y Pistas":  6,
+            "Zona 1 – Bulevar Av. Amazonas": 20,
         },
     },
     2036: {
@@ -272,14 +252,12 @@ PLAN_FASES = {
         "contexto": (
             "304,570 hab. en el sector. Metro maduro con 40,000 usuarios/día combinados "
             "(Bicentenario + Andalucía). Bulevar equiparable al de Av. Amazonas en La "
-            "Carolina. 10 kioskos (1 c/200m) – estándar de boulevard urbano de alta densidad."
+            "Carolina. 25 kioskos (1 c/80m) – máxima densidad comercial sustentable."
         ),
         "poblacion_hab": 304_570,
         "hito": "🏆 Nuevo hipercentro de Quito",
         "kioskos": {
-            "Zona 1 – Bulevar Av. Amazonas":        10,   # 1 c/200m – estándar bulevar urbano
-            "Zona 2 – Arena de Espectáculos":         8,   # 150m: demanda evento + metro
-            "Zona 3 – Canchas Deportivas y Pistas":   7,   # 200m: demanda deportiva + residentes
+            "Zona 1 – Bulevar Av. Amazonas": 25,
         },
     },
 }
@@ -289,40 +267,23 @@ FACTOR_VISITANTES_NO_CONTABILIZADOS = 2.5
 
 ZONAS = {
     "Zona 1 – Bulevar Av. Amazonas": {
-        "descripcion": "Bulevar peatonal contiguo a la Av. Amazonas. Zona de paseo familiar "
-                       "y recreación. Alta afluencia de familias, visitantes con niños y "
-                       "caminantes. Las zonas familiares del parque gravitan hacia el bulevar "
-                       "como eje de circulación principal.",
+        "descripcion": "Bulevar peatonal contiguo a la Av. Amazonas. Zona de paseo familiar, "
+                       "recreación y deporte. Concentra toda la demanda del parque: familias, "
+                       "deportistas, usuarios de canchas/pistas y visitantes de actividades "
+                       "especiales. Eje comercial principal del Parque Bicentenario.",
         "fuentes_estadisticas": [
             "JUEGOS RECREATIVOS",
             "ZONA CANINA",
             "2025 MINI CITI JUEGOS INCLUSIVOS",
             "2025 JUEGOS INCLUSIVOS",
-        ],
-        "factor_captacion": 0.65,   # aumentado: incluye paseos familiares y zona lúdica
-        "tipo": "comercial_alta_densidad",
-    },
-    "Zona 2 – Arena de Espectáculos": {
-        "descripcion": "Espacio lateral a la arena de espectáculos (futura construcción). "
-                       "Alta concurrencia en eventos. Crecimiento proyectado al inaugurarse.",
-        "fuentes_estadisticas": [
             "2025 COMPETENCIAS DEPORTIVAS 3 CARRERAS AL MES",
             "2025 BAILOTERAPIA",
-        ],
-        "factor_captacion": 0.70,
-        "tipo": "eventos_espectaculos",
-    },
-    "Zona 3 – Canchas Deportivas y Pistas": {
-        "descripcion": "Sector de canchas y pistas de ciclismo/caminata. "
-                       "Usuarios activos con alta necesidad de hidratación y refrigerio rápido.",
-        "fuentes_estadisticas": [
             "USO DE LA PISTA DE CICLISMO",
             "2025 PISTA MULTIUSO",
-            "2025 MINI CITI JUEGOS INCLUSIVOS",
-            "2025 JUEGOS INCLUSIVOS",
         ],
-        "factor_captacion": 0.55,
-        "tipo": "deportivo",
+        "factor_captacion": 0.65,
+        "tipo": "comercial_alta_densidad",
+        "color": "#2980b9",
     },
 }
 
@@ -822,9 +783,7 @@ def tabla_plan_fases() -> pd.DataFrame:
             "Fase": fd["fase"],
             "Hito": fd["hito"],
             "Población (hab.)": f"{fd['poblacion_hab']:,}",
-            "Bulevar": k["Zona 1 – Bulevar Av. Amazonas"],
-            "Arena": k["Zona 2 – Arena de Espectáculos"],
-            "Canchas": k["Zona 3 – Canchas Deportivas y Pistas"],
+            "Bulevar Av. Amazonas": k.get("Zona 1 – Bulevar Av. Amazonas", 0),
             "Total": sum(k.values()),
             "Contexto": fd["contexto"],
         })

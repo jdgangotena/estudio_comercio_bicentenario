@@ -760,21 +760,9 @@ if pagina == "🏠 Resumen Ejecutivo":
                 <td style="padding:0.3rem 0;color:#666;">Arranque {_fase1}</td>
                 <td style="font-weight:700;color:#27ae60;text-align:right;">{_tot_ini} kioskos</td>
             </tr>
-            <tr style="border-bottom:1px solid #eee;">
+            <tr>
                 <td style="padding:0.3rem 0;color:#666;">Proyección {_fase4}</td>
                 <td style="font-weight:700;color:#e67e22;text-align:right;">{_tot_fin} kioskos</td>
-            </tr>
-            <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:0.3rem 0;color:#666;">Bulevar {_fase4}</td>
-                <td style="font-weight:700;color:#2980b9;text-align:right;">{PLAN_FASES[_fase4]['kioskos']['Zona 1 – Bulevar Av. Amazonas']} kioskos</td>
-            </tr>
-            <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:0.3rem 0;color:#666;">Arena {_fase4}</td>
-                <td style="font-weight:700;color:#e67e22;text-align:right;">{PLAN_FASES[_fase4]['kioskos']['Zona 2 – Arena de Espectáculos']} kioskos</td>
-            </tr>
-            <tr>
-                <td style="padding:0.3rem 0;color:#666;">Canchas {_fase4}</td>
-                <td style="font-weight:700;color:#27ae60;text-align:right;">{PLAN_FASES[_fase4]['kioskos']['Zona 3 – Canchas Deportivas y Pistas']} kioskos</td>
             </tr>
             </table>
         </div>
@@ -1672,7 +1660,7 @@ elif pagina == "📐 Prueba de Hipótesis":
     <b>Resumen ejecutivo:</b> ambas pruebas son concluyentes (p&lt;0.05).
     La demanda estadística <b>no respalda</b> el plan de 50 kioskos de la SHOT —
     el número técnicamente justificado al año 2036 es <b>25 kioskos</b>
-    (10 Bulevar + 8 Arena + 7 Canchas), respetando restricciones físicas y comerciales.
+    en el Bulevar Av. Amazonas, respetando restricciones físicas y comerciales.
     Al mismo tiempo, la ciudadanía <b>sí apoya mayoritariamente</b> la implementación
     de espacios comerciales en el parque, lo que valida el proyecto en su conjunto.
     </div>
@@ -2037,7 +2025,7 @@ elif pagina == "🏪 Modelo comercial":
         df_fases = tabla_plan_fases()
         st.dataframe(df_fases[[
             "Año", "Fase", "Hito", "Población (hab.)",
-            "Bulevar", "Arena", "Canchas", "Total", "Contexto"
+            "Bulevar Av. Amazonas", "Total", "Contexto"
         ]], width="stretch", hide_index=True)
 
         st.markdown("---")
@@ -2053,12 +2041,11 @@ elif pagina == "🏪 Modelo comercial":
                     ⚠️ Propuesta referencial (50 kioskos)
                 </div>
                 <ul style="color:#636e72;font-size:0.85rem;margin-top:0.5rem;">
-                    <li>Bulevar: 10 kioskos ✅ – correcto</li>
-                    <li>Otras 2 zonas: 40 kioskos combinados ❌</li>
-                    <li>Arena (150 m): imposible físicamente con 20+ kioskos</li>
-                    <li>Canchas (200 m): imposible físicamente con 20+ kioskos</li>
+                    <li>50 kioskos en total ❌ – sobredimensionado</li>
+                    <li>No considera demanda real por encuesta</li>
                     <li>No considera distancias comerciales mínimas ni giros</li>
                     <li>No contempla fases de implementación</li>
+                    <li>No acota el espacio de intervención</li>
                 </ul>
             </div>
             """, unsafe_allow_html=True)
@@ -2073,13 +2060,12 @@ elif pagina == "🏪 Modelo comercial":
                     ✅ Plan técnico recomendado (2026–2036)
                 </div>
                 <ul style="color:#2c3e50;font-size:0.85rem;margin-top:0.5rem;">
-                    <li>Arranque 2026: <b>{total_ini} kioskos</b> (Bulevar 4 + Arena 3 + Canchas 3)</li>
-                    <li>Bulevar 2036: <b>10 kioskos</b> – 1 cada 200 m ✅</li>
-                    <li>Arena 2036: <b>8 kioskos</b> – físicamente viable en 150 m ✅</li>
-                    <li>Canchas 2036: <b>7 kioskos</b> – físicamente viable en 200 m ✅</li>
-                    <li>Total 2036: <b>{total_final} kioskos</b></li>
+                    <li>Zona: <b>Bulevar Av. Amazonas</b> (2,000 m)</li>
+                    <li>Arranque 2026: <b>{total_ini} kioskos</b> – 1 cada 200 m ✅</li>
+                    <li>Proyección 2036: <b>{total_final} kioskos</b> – 1 cada 80 m ✅</li>
                     <li>4 fases: 2026 → 2029 → 2033 → 2036</li>
                     <li>Giros alternados · Distancias comerciales garantizadas</li>
+                    <li>Respaldado por encuesta y crecimiento poblacional</li>
                 </ul>
             </div>
             """, unsafe_allow_html=True)
@@ -2087,13 +2073,12 @@ elif pagina == "🏪 Modelo comercial":
         st.markdown(f"""
         <br>
         <div class="insight-box">
-        <b>Conclusión:</b> Los <b>10 kioskos en el bulevar</b> son válidos por dos criterios
-        independientes: densidad urbana (1/200m) y demanda proyectada (que en 2036 justificaría
-        más del cuádruple). Las zonas 2 y 3 están acotadas por su <b>longitud física</b>
-        (150m y 200m); colocar 40 kioskos en ambas es inviable — el máximo técnico razonable
-        para el horizonte 2036 es <b>8 en la Arena y 7 en Canchas</b>, respetando distancias
-        comerciales y tipos de giro alternados. El total técnico para 2036 es
-        <b>{total_final} kioskos</b>, no 50.
+        <b>Conclusión:</b> Los <b>10 kioskos de arranque en el Bulevar Av. Amazonas</b> son válidos
+        por dos criterios independientes: densidad urbana (1/200m) y demanda proyectada (que en 2036
+        justificaría más del doble). El plan de <b>50 kioskos</b> propuesto por la SHOT no tiene
+        respaldo en la demanda real ni en el espacio físico disponible. El máximo técnico razonable
+        para el horizonte 2036 en el Bulevar Av. Amazonas es <b>{total_final} kioskos</b>, respetando
+        distancias comerciales, giros alternados y estándares de circulación peatonal.
         </div>
         """, unsafe_allow_html=True)
 
@@ -2144,10 +2129,9 @@ competencias deportivas, uso de pistas, etc.). Este conteo tiene **subregistro r
 **Paso 2 – Visitantes estimados reales**
 `Usuarios base × 2.5 (factor no contabilizados) × factor de captación de zona`
 El multiplicador ×2.5 corrige el subregistro: por cada participante registrado, se estima
-que 1.5 más visitan sin quedar en registros. El factor de captación varía por zona:
-- Bulevar: **{ZONAS['Zona 1 – Bulevar Av. Amazonas']['factor_captacion']*100:.0f}%** (familias + zona canina + juegos inclusivos)
-- Arena: **{ZONAS['Zona 2 – Arena de Espectáculos']['factor_captacion']*100:.0f}%** (público de eventos + bailoterapia)
-- Canchas: **{ZONAS['Zona 3 – Canchas Deportivas y Pistas']['factor_captacion']*100:.0f}%** (deportistas + pista de ciclismo)
+que 1.5 más visitan sin quedar en registros. Factor de captación del Bulevar Av. Amazonas:
+**{ZONAS['Zona 1 – Bulevar Av. Amazonas']['factor_captacion']*100:.0f}%** (familias, zona canina, juegos inclusivos,
+deportistas, bailoterapia, usuarios de pistas — toda la demanda del parque consolidada).
 
 **Paso 3 – Consumidores potenciales**
 `Visitantes × {tasas['tasa_consumo']*100:.1f}%` = tasa de consumo medida en encuesta.
@@ -2163,19 +2147,19 @@ ocupación objetivo 60%. Total: **{cap_met['clientes_anuales_por_kiosko']:,} cli
 
 ---
 
-**¿Por qué el modelo estadístico da 2 para el Bulevar y el plan de arranque 2026 es 4?**
+**¿Por qué el modelo estadístico da un número menor y el plan de arranque 2026 es 10?**
 
-El modelo estadístico usa **solo las estadísticas de actividades registradas** del parque 2025:
-juegos recreativos, zona canina, juegos inclusivos. Estas actividades no capturan el tráfico
-total del bulevar como eje de circulación del parque.
+El modelo estadístico usa **las estadísticas de actividades registradas** del parque 2025
+(juegos recreativos, zona canina, bailoterapia, competencias, pistas). Estas actividades
+no capturan el tráfico total del bulevar como eje de circulación.
 
-El **arranque 2026 con 4 kioskos** incorpora contexto urbano que el modelo estadístico no mide:
-- **142,034 habitantes** en el sector bicentenario (tráfico cotidiano no registrado en actividades)
+El **arranque 2026 con 10 kioskos** incorpora contexto urbano que el modelo estadístico no mide:
+- **142,034 habitantes** en el sector bicentenario (tráfico cotidiano no registrado)
 - El bulevar es el **eje de circulación principal** del parque → flujo de paso constante
-- **Cobertura mínima funcional:** 1 kiosko cada 500 m en 2,000 m de recorrido = 4 kioskos
-- **Estándar de servicio:** menos de 4 kioskos en 2 km de bulevar deja tramos sin oferta comercial
+- **Cobertura mínima funcional:** 1 kiosko cada 200 m en 2,000 m de recorrido = 10 kioskos
+- **Estándar de servicio:** menos de 10 kioskos en 2 km de bulevar deja tramos sin oferta
 
-Los 4 kioskos son el **mínimo operacional razonable para el contexto urbano**, no solo lo que
+Los 10 kioskos son el **estándar de boulevard urbano de alta densidad**, no solo lo que
 justifican las estadísticas de actividades específicas del parque.
             """)
 
