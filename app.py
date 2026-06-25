@@ -1,6 +1,6 @@
 """
 Estudio de Mercado – Kioskos Parque Bicentenario
-Aplicación Streamlit principal
+Aplicación Streamlit principal · v2
 """
 
 import sys
