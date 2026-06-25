@@ -2089,15 +2089,15 @@ elif pagina == "🏪 Modelo comercial":
 
     # ── TAB 2: MODELO DE DEMANDA ───────────────────────────────────────────────
     with tab_dem:
-        st.dataframe(tabla_resumen_forecast(forecast), width="stretch", hide_index=True)
+        st.dataframe(tabla_resumen_forecast(forecast, stats, enc), width="stretch", hide_index=True)
 
         col_g1, col_g2 = st.columns(2)
         with col_g1:
             st.plotly_chart(fig_kioskos_por_zona(forecast), width="stretch")
         with col_g2:
-            st.plotly_chart(fig_visitantes_vs_demanda(forecast), width="stretch")
+            st.plotly_chart(fig_visitantes_vs_demanda(stats, enc), width="stretch")
 
-        st.plotly_chart(fig_ingresos_potenciales(forecast), width="stretch")
+        st.plotly_chart(fig_ingresos_potenciales(stats, enc), width="stretch")
 
         with st.expander("⚙️ Parámetros del modelo de demanda"):
             cap = forecast["capacidad_kiosko"]

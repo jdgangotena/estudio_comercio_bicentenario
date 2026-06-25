@@ -1215,14 +1215,37 @@ def fig_kioskos_por_zona(forecast: dict) -> go.Figure:
     return fig
 
 
-def fig_visitantes_vs_demanda(forecast: dict) -> go.Figure:
-    zonas = list(forecast["zonas"].keys())
-    short = [z.split("–")[1].strip() if "–" in z else z for z in zonas]
-    visitantes   = [forecast["zonas"][z]["visitantes_diarios_promedio"] for z in zonas]
-    consumidores = [forecast["zonas"][z]["demanda_diaria_promedio"] for z in zonas]
+def fig_visitantes_vs_demanda(estadisticas: dict, df_encuesta: pd.DataFrame) -> go.Figure:
+    """
+    Visitantes y consumidores por zona/día.
+    Usa la misma base que fig_trafico_parque_total: total_anual/365 = dato real,
+    distribuido proporcionalmente entre zonas según el peso de sus fuentes.
+    """
+    rates = _conversion_rates(df_encuesta)
+
+    total_anual = sum(
+        df["total"].sum() for df in estadisticas.values() if "total" in df.columns
+    )
+    diario_total = max(1, round(total_anual / 365))
+
+    # Peso bruto de cada zona (suma de sus fuentes en estadisticas)
+    zona_names = list(ZONAS.keys())
+    pesos = {}
+    for zona_name, zona_cfg in ZONAS.items():
+        s = 0
+        for source in zona_cfg["fuentes_estadisticas"]:
+            if source in estadisticas and "total" in estadisticas[source].columns:
+                s += estadisticas[source]["total"].sum()
+        pesos[zona_name] = max(1, s)
+
+    total_pesos = sum(pesos.values())
+    short        = [z.split("–")[1].strip() if "–" in z else z for z in zona_names]
+    visitantes   = [round(diario_total * pesos[z] / total_pesos) for z in zona_names]
+    consumidores = [round(v * rates["tasa_consumo"]) for v in visitantes]
+
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        name="Visitantes/día estimados",
+        name="Visitantes/día",
         x=short, y=visitantes,
         marker_color="#3498db",
         text=[f"{v:,}" for v in visitantes],
@@ -1236,8 +1259,10 @@ def fig_visitantes_vs_demanda(forecast: dict) -> go.Figure:
         textposition="outside", textfont=dict(size=11),
     ))
     max_val = max(visitantes + consumidores)
-    fig.update_layout(barmode="group",
-        title=dict(text="Visitantes vs. Consumidores por día", font=dict(size=15), x=0.02),
+    fig.update_layout(
+        barmode="group",
+        title=dict(text=f"Visitantes vs. Consumidores por zona / día  (total parque: {diario_total:,}/día)",
+                   font=dict(size=15), x=0.02),
         plot_bgcolor="white", paper_bgcolor="white", font=dict(family="Arial", size=13),
         xaxis=dict(showgrid=False),
         yaxis=dict(title="Personas/día", gridcolor="#f0f0f0", range=[0, max_val * 1.25]),
@@ -1247,13 +1272,16 @@ def fig_visitantes_vs_demanda(forecast: dict) -> go.Figure:
     return fig
 
 
-def fig_ingresos_potenciales(forecast: dict) -> go.Figure:
-    zonas = list(forecast["zonas"].keys())
-    short = [z.split("–")[1].strip() if "–" in z else z for z in zonas]
-    ingresos = [forecast["zonas"][z]["ingresos_potenciales_anuales_usd"] for z in zonas]
-    fig = go.Figure(go.Bar(x=short, y=ingresos,
+def fig_ingresos_potenciales(estadisticas: dict, df_encuesta: pd.DataFrame) -> go.Figure:
+    zona_stats = _zona_stats_consistentes(estadisticas, df_encuesta)
+    zona_names = list(ZONAS.keys())
+    short    = [z.split("–")[1].strip() if "–" in z else z for z in zona_names]
+    ingresos = [zona_stats[z]["ingresos_anuales_usd"] for z in zona_names]
+    fig = go.Figure(go.Bar(
+        x=short, y=ingresos,
         text=[f"${i:,.0f}" for i in ingresos], textposition="outside",
-        marker_color=PALETTE[:len(zonas)]))
+        marker_color=PALETTE[:len(zona_names)],
+    ))
     fig.update_layout(
         title=dict(text="Ingresos potenciales anuales por zona (USD)", font=dict(size=15), x=0.02),
         plot_bgcolor="white", paper_bgcolor="white", font=dict(family="Arial", size=13),
@@ -1263,16 +1291,76 @@ def fig_ingresos_potenciales(forecast: dict) -> go.Figure:
     return fig
 
 
-def tabla_resumen_forecast(forecast: dict) -> pd.DataFrame:
+def _zona_stats_consistentes(estadisticas: dict, df_encuesta: pd.DataFrame) -> dict:
+    """
+    Calcula visitantes y consumidores por zona usando la misma base que
+    fig_trafico_parque_total: total_anual/365, distribuido proporcionalmente.
+    """
+    rates = _conversion_rates(df_encuesta)
+    gasto_map = {
+        "Menos de $2": 1.5, "Entre $2 y $5": 3.5, "Entre $5 y $10": 7.5,
+        "Entre $10 y $20": 15.0, "Más de $20": 22.0,
+    }
+    gasto_prom = rates["gasto_promedio_usd"]
+
+    total_anual = sum(
+        df["total"].sum() for df in estadisticas.values() if "total" in df.columns
+    )
+    diario_total = max(1, round(total_anual / 365))
+
+    pesos = {}
+    for zona_name, zona_cfg in ZONAS.items():
+        s = 0
+        for source in zona_cfg["fuentes_estadisticas"]:
+            if source in estadisticas and "total" in estadisticas[source].columns:
+                s += estadisticas[source]["total"].sum()
+        pesos[zona_name] = max(1, s)
+    total_pesos = sum(pesos.values())
+
+    result = {}
+    for zona_name in ZONAS:
+        vis_dia  = round(diario_total * pesos[zona_name] / total_pesos)
+        vis_anio = vis_dia * 365
+        cons_anio = round(vis_anio * rates["tasa_consumo"])
+        ingresos  = round(cons_anio * gasto_prom)
+        result[zona_name] = {
+            "visitantes_diarios": vis_dia,
+            "visitantes_anuales": vis_anio,
+            "consumidores_anuales": cons_anio,
+            "ingresos_anuales_usd": ingresos,
+        }
+    return result
+
+
+def tabla_resumen_forecast(forecast: dict, estadisticas: dict = None,
+                           df_encuesta=None) -> pd.DataFrame:
+    """Tabla por zona. Si se pasan estadisticas+encuesta usa base consistente 661/día."""
+    fase1 = min(PLAN_FASES.keys())
+    fase4 = max(PLAN_FASES.keys())
     rows = []
-    for zona, data in forecast["zonas"].items():
-        rows.append({
-            "Zona": zona,
-            "Visitantes/año est.": f"{data['visitantes_anuales_estimados']:,}",
-            "Consumidores/año": f"{data['demanda_anual_consumidores']:,}",
-            "Kioskos mín.": data["kioskos_min"],
-            "Kioskos rec.": data["kioskos_recomendados"],
-            "Kioskos máx.": data["kioskos_max"],
-            "Ingresos/año (USD)": f"${data['ingresos_potenciales_anuales_usd']:,}",
-        })
+
+    if estadisticas is not None and df_encuesta is not None:
+        zona_stats = _zona_stats_consistentes(estadisticas, df_encuesta)
+        for zona_name in ZONAS:
+            s = zona_stats[zona_name]
+            k_ini = PLAN_FASES[fase1]["kioskos"].get(zona_name, 1)
+            k_fin = PLAN_FASES[fase4]["kioskos"].get(zona_name, 1)
+            rows.append({
+                "Zona": zona_name.split("–")[1].strip() if "–" in zona_name else zona_name,
+                "Visitantes/día (2025)": f"{s['visitantes_diarios']:,}",
+                "Visitantes/año (2025)": f"{s['visitantes_anuales']:,}",
+                "Consumidores/año": f"{s['consumidores_anuales']:,}",
+                f"Kioskos {fase1}": k_ini,
+                f"Kioskos {fase4}": k_fin,
+                "Ingresos potenciales/año (USD)": f"${s['ingresos_anuales_usd']:,}",
+            })
+    else:
+        for zona, data in forecast["zonas"].items():
+            rows.append({
+                "Zona": zona,
+                "Visitantes/año est.": f"{data['visitantes_anuales_estimados']:,}",
+                "Consumidores/año": f"{data['demanda_anual_consumidores']:,}",
+                "Kioskos rec.": data["kioskos_recomendados"],
+                "Ingresos/año (USD)": f"${data['ingresos_potenciales_anuales_usd']:,}",
+            })
     return pd.DataFrame(rows)
