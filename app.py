@@ -54,6 +54,7 @@ from models.kiosko_model import (
     fig_trafico_parque_total, fig_demanda_vs_plan_parque,
     fig_plan_fases, tabla_plan_fases,
     fig_demanda_por_giro, demanda_por_giro,
+    fig_ingresos_fases_zona, fig_ingresos_fases_por_kiosko,
 )
 from data_cleaner import GASTO_ORDER, FRECUENCIA_ORDER
 
@@ -2022,6 +2023,15 @@ elif pagina == "🏪 Modelo comercial":
         st.markdown('<p class="section-header">Plan de implementación por fases</p>',
                     unsafe_allow_html=True)
         st.plotly_chart(fig_plan_fases(), width="stretch")
+
+        # Crecimiento de ingresos por fases
+        st.markdown('<p class="section-header">Proyección de ingresos por fases</p>',
+                    unsafe_allow_html=True)
+        col_if1, col_if2 = st.columns(2)
+        with col_if1:
+            st.plotly_chart(fig_ingresos_fases_zona(stats, enc), width="stretch")
+        with col_if2:
+            st.plotly_chart(fig_ingresos_fases_por_kiosko(stats, enc), width="stretch")
 
         # Tabla de fases
         df_fases = tabla_plan_fases()

@@ -1343,6 +1343,95 @@ def fig_ingresos_diarios_por_kiosko(estadisticas: dict,
     return fig
 
 
+def fig_ingresos_fases_zona(estadisticas: dict, df_encuesta: pd.DataFrame) -> go.Figure:
+    """Ingreso diario por zona para cada fase del plan (2026-2036)."""
+    zona_stats = _zona_stats_consistentes(estadisticas, df_encuesta)
+    rates      = _conversion_rates(df_encuesta)
+    gasto      = rates["gasto_promedio_usd"]
+    tasa       = rates["tasa_consumo"]
+
+    años       = sorted(PLAN_FASES.keys())
+    pop_base   = PLAN_FASES[años[0]]["poblacion_hab"]
+    zona_names = list(ZONAS.keys())
+    short      = [z.split("–")[1].strip() if "–" in z else z for z in zona_names]
+    colores    = [ZONAS[z].get("color", PALETTE[i]) for i, z in enumerate(zona_names)]
+
+    fig = go.Figure()
+    for zona, label, color in zip(zona_names, short, colores):
+        vis_base = zona_stats[zona]["visitantes_diarios"]
+        ing_by_year = []
+        for a in años:
+            factor = PLAN_FASES[a]["poblacion_hab"] / pop_base
+            ing_by_year.append(round(vis_base * factor * tasa * gasto, 2))
+        fig.add_trace(go.Bar(
+            name=label, x=[str(a) for a in años], y=ing_by_year,
+            text=[f"${v:,.0f}" for v in ing_by_year],
+            textposition="outside", marker_color=color,
+        ))
+
+    max_val = max(
+        round(zona_stats[z]["visitantes_diarios"]
+              * (PLAN_FASES[max(años)]["poblacion_hab"] / pop_base) * tasa * gasto, 2)
+        for z in zona_names
+    )
+    fig.update_layout(
+        title=dict(text="Crecimiento de ingresos diarios por zona (2026–2036)",
+                   font=dict(size=15), x=0.02),
+        barmode="group",
+        plot_bgcolor="white", paper_bgcolor="white", font=dict(family="Arial", size=12),
+        xaxis=dict(title="Fase / Año", showgrid=False),
+        yaxis=dict(title="USD / día", gridcolor="#f0f0f0", range=[0, max_val * 1.28]),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        margin=dict(l=40, r=20, t=90, b=40),
+    )
+    return fig
+
+
+def fig_ingresos_fases_por_kiosko(estadisticas: dict, df_encuesta: pd.DataFrame) -> go.Figure:
+    """Ingreso diario por kiosko en cada zona para cada fase del plan."""
+    zona_stats = _zona_stats_consistentes(estadisticas, df_encuesta)
+    rates      = _conversion_rates(df_encuesta)
+    gasto      = rates["gasto_promedio_usd"]
+    tasa       = rates["tasa_consumo"]
+
+    años       = sorted(PLAN_FASES.keys())
+    pop_base   = PLAN_FASES[años[0]]["poblacion_hab"]
+    zona_names = list(ZONAS.keys())
+    short      = [z.split("–")[1].strip() if "–" in z else z for z in zona_names]
+    colores    = [ZONAS[z].get("color", PALETTE[i]) for i, z in enumerate(zona_names)]
+
+    fig = go.Figure()
+    all_vals = []
+    for zona, label, color in zip(zona_names, short, colores):
+        vis_base = zona_stats[zona]["visitantes_diarios"]
+        ing_by_year = []
+        for a in años:
+            factor  = PLAN_FASES[a]["poblacion_hab"] / pop_base
+            ing_zona = vis_base * factor * tasa * gasto
+            n_k      = max(1, PLAN_FASES[a]["kioskos"].get(zona, 1))
+            ing_by_year.append(round(ing_zona / n_k, 2))
+        all_vals.extend(ing_by_year)
+        k_labels = [PLAN_FASES[a]["kioskos"].get(zona, 1) for a in años]
+        fig.add_trace(go.Bar(
+            name=label, x=[str(a) for a in años], y=ing_by_year,
+            text=[f"${v:,.0f}<br><sub>({k}k)</sub>" for v, k in zip(ing_by_year, k_labels)],
+            textposition="outside", marker_color=color,
+        ))
+
+    fig.update_layout(
+        title=dict(text="Ingreso diario por kiosko por zona – evolución por fase",
+                   font=dict(size=15), x=0.02),
+        barmode="group",
+        plot_bgcolor="white", paper_bgcolor="white", font=dict(family="Arial", size=12),
+        xaxis=dict(title="Fase / Año", showgrid=False),
+        yaxis=dict(title="USD / kiosko / día", gridcolor="#f0f0f0",
+                   range=[0, max(all_vals) * 1.32]),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        margin=dict(l=40, r=20, t=90, b=40),
+    )
+    return fig
+
+
 def _zona_stats_consistentes(estadisticas: dict, df_encuesta: pd.DataFrame) -> dict:
     """
     Calcula visitantes y consumidores por zona usando la misma base que
