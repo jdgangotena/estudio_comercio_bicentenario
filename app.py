@@ -464,13 +464,24 @@ if pagina == "🏠 Resumen Ejecutivo":
             textposition="top center",
             name="Visitas totales",
         ))
+        _y_min_data = min(_mes_vals)
+        _y_ceil = max(28000, int(max(_mes_vals) / 2000 + 1) * 2000)
+        _y_start = int(_y_min_data / 2000) * 2000          # piso del mínimo en múltiplos de 2k
+        _yticks = [0] + list(range(_y_start, _y_ceil + 1, 2000))
+        _ytick_text = ["0"] + [f"{int(v/1000)}k" for v in range(_y_start, _y_ceil + 1, 2000)]
         _fig_linea.update_layout(
             plot_bgcolor="white", paper_bgcolor="white",
             font=dict(family="Arial", size=12),
             xaxis=dict(showgrid=False, tickangle=-30),
-            yaxis=dict(title="Visitas / mes", gridcolor="#f0f0f0",
-                       range=[0, max(_mes_vals) * 1.2]),
-            margin=dict(l=40, r=20, t=40, b=60),
+            yaxis=dict(
+                title="Visitas / mes",
+                gridcolor="#f0f0f0",
+                range=[0, _y_ceil],
+                tickmode="array",
+                tickvals=_yticks,
+                ticktext=_ytick_text,
+            ),
+            margin=dict(l=50, r=20, t=40, b=60),
             showlegend=False,
         )
         st.plotly_chart(_fig_linea, width="stretch")
@@ -2094,8 +2105,8 @@ elif pagina == "🏪 Modelo comercial":
                     ✅ Plan técnico recomendado (2026–2036)
                 </div>
                 <ul style="color:#2c3e50;font-size:0.85rem;margin-top:0.5rem;">
-                    <li>Zona: <b>Bulevar de las Canchas</b> (2,000 m)</li>
-                    <li>Arranque 2026: <b>{total_ini} kioskos</b> – 1 cada 200 m ✅</li>
+                    <li>Zona: <b>Bulevar de las Canchas</b> – 4 cuerpos (160 m total)</li>
+                    <li>Arranque 2026: <b>{total_ini} kioskos</b> ✅</li>
                     <li>Proyección 2036: <b>{total_final} kioskos</b> – 1 cada 80 m ✅</li>
                     <li>4 fases: 2026 → 2029 → 2033 → 2036</li>
                     <li>Giros alternados · Distancias comerciales garantizadas</li>
@@ -2190,8 +2201,8 @@ no capturan el tráfico total del bulevar como eje de circulación.
 El **arranque 2026 con 10 kioskos** incorpora contexto urbano que el modelo estadístico no mide:
 - **142,034 habitantes** en el sector bicentenario (tráfico cotidiano no registrado)
 - El bulevar es el **eje de circulación principal** del parque → flujo de paso constante
-- **Cobertura mínima funcional:** 1 kiosko cada 200 m en 2,000 m de recorrido = 10 kioskos
-- **Estándar de servicio:** menos de 10 kioskos en 2 km de bulevar deja tramos sin oferta
+- **Cobertura mínima funcional:** 10 kioskos distribuidos en los 4 cuerpos del bulevar (160 m)
+- **Estándar de servicio:** saturar los 4 cuerpos desde el arranque garantiza presencia comercial en todo el boulevard
 
 Los 10 kioskos son el **estándar de boulevard urbano de alta densidad**, no solo lo que
 justifican las estadísticas de actividades específicas del parque.
