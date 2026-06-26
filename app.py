@@ -240,101 +240,98 @@ if pagina == "🏠 Resumen Ejecutivo":
         "Análisis integral de viabilidad comercial · Parque Metropolitano Bicentenario · Quito, 2026",
     )
 
-    # KPIs principales
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['n_encuestados']}</div>
-            <div class="kpi-label">Encuestados</div></div>""", unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['consumiria_pct']}%</div>
-            <div class="kpi-label">Consumiría en el parque</div></div>""", unsafe_allow_html=True)
-    with col3:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['aprueba_kiosko_pct']}%</div>
-            <div class="kpi-label">Aprueba kioskos</div></div>""", unsafe_allow_html=True)
-    with col4:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['calificacion_promedio']}/5</div>
-            <div class="kpi-label">Calificación actual del parque</div></div>""", unsafe_allow_html=True)
+    # ── 1. VISITAS AL PARQUE ──────────────────────────────────────────────────
+    st.markdown('<p class="section-header">1. Visitas al Parque Bicentenario 2025</p>',
+                unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    col5, col6, col7, col8 = st.columns(4)
-    with col5:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['edad_promedio']} años</div>
-            <div class="kpi-label">Edad promedio del visitante</div></div>""", unsafe_allow_html=True)
-    with col6:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">${kpis['gasto_promedio_usd']}</div>
-            <div class="kpi-label">Gasto promedio dispuesto</div></div>""", unsafe_allow_html=True)
-    with col7:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['mejora_experiencia_pct']}%</div>
-            <div class="kpi-label">Cree que kioskos mejorarían exp.</div></div>""", unsafe_allow_html=True)
-    with col8:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['total_visitas_parque_2025']:,}</div>
-            <div class="kpi-label">Visitas totales 2025</div></div>""", unsafe_allow_html=True)
+    stats_summary = []
+    _total_anual_sum = 0
+    _total_pico_sum = 0
+    for nombre, df_s in stats.items():
+        if "total" in df_s.columns:
+            total_anual = df_s["total"].sum()
+            pico = df_s[["sabado", "domingo"]].sum(axis=1).max() if all(
+                c in df_s.columns for c in ["sabado", "domingo"]) else 0
+            _total_anual_sum += total_anual
+            _total_pico_sum += pico
+            stats_summary.append({
+                "Actividad": nombre,
+                "Visitas anuales": f"{int(total_anual):,}",
+                "Pico fin de semana (semana más alta)": f"{int(pico):,}",
+            })
+    if stats_summary:
+        stats_summary.append({
+            "Actividad": "📊 TOTAL PARQUE",
+            "Visitas anuales": f"{int(_total_anual_sum):,}",
+            "Pico fin de semana (semana más alta)": f"{int(_total_pico_sum):,}",
+        })
+        st.dataframe(pd.DataFrame(stats_summary), width="stretch", hide_index=True)
+
+    import plotly.graph_objects as _go_res
+    _meses_ord = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO",
+                  "JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"]
+    _monthly_totals = {m: 0.0 for m in _meses_ord}
+    for df_s in stats.values():
+        if "total" in df_s.columns and "mes" in df_s.columns:
+            for _, row in df_s.iterrows():
+                m = str(row["mes"]).upper().strip()
+                if m in _monthly_totals:
+                    _monthly_totals[m] += float(row["total"])
+    _mes_vals = [_monthly_totals[m] for m in _meses_ord]
+    _mes_labels = [m.capitalize() for m in _meses_ord]
+    if any(v > 0 for v in _mes_vals):
+        st.markdown('<p class="section-header">Visitas totales al parque por mes</p>',
+                    unsafe_allow_html=True)
+        _fig_linea = _go_res.Figure()
+        _fig_linea.add_trace(_go_res.Scatter(
+            x=_mes_labels, y=_mes_vals,
+            mode="lines+markers+text",
+            line=dict(color="#2980b9", width=3),
+            marker=dict(size=8, color="#2980b9"),
+            text=[f"{int(v):,}" for v in _mes_vals],
+            textposition="top center",
+            name="Visitas totales",
+        ))
+        _y_min_data = min(_mes_vals)
+        _y_ceil = int(max(_mes_vals) / 500 + 2) * 500
+        _y_start = int(_y_min_data / 500) * 500
+        _yticks = [0] + list(range(_y_start, _y_ceil + 1, 500))
+        def _fmt_yt(v):
+            return f"{int(v//1000)}k" if v % 1000 == 0 else f"{v/1000:.1f}k"
+        _ytick_text = ["0"] + [_fmt_yt(v) for v in range(_y_start, _y_ceil + 1, 500)]
+        _fig_linea.update_layout(
+            plot_bgcolor="white", paper_bgcolor="white",
+            font=dict(family="Arial", size=12),
+            xaxis=dict(showgrid=False, tickangle=-30),
+            yaxis=dict(
+                title="Visitas / mes",
+                gridcolor="#f0f0f0",
+                range=[0, _y_ceil],
+                tickmode="array",
+                tickvals=_yticks,
+                ticktext=_ytick_text,
+            ),
+            margin=dict(l=50, r=20, t=40, b=60),
+            showlegend=False,
+        )
+        st.plotly_chart(_fig_linea, width="stretch")
 
     st.markdown("---")
 
-    # ── OBJETIVOS DEL ESTUDIO ────────────────────────────────────────────────
-    st.markdown('<p class="section-header">Objetivos del estudio</p>', unsafe_allow_html=True)
-
-    obj_col1, obj_col2 = st.columns(2)
-    _objetivos = [
-        ("OBJ 1", "#2980b9", "Determinar la viabilidad estadística del plan de 50 kioskos",
-         "Evaluar si la demanda real estimada por el modelo estadístico justifica la cifra "
-         "de 50 kioskos propuesta por el plan masa de la SHOT, o si ese número sobredimensiona "
-         "la oferta comercial.",
-         "→ Validado con <b>Hipótesis H1</b>"),
-        ("OBJ 2", "#27ae60", "Medir la aceptación ciudadana de los kioskos comerciales",
-         "Cuantificar el porcentaje de visitantes que considera adecuada la implementación "
-         "de kioskos en el Parque Bicentenario y contrastar si ese respaldo supera "
-         "estadísticamente el umbral del 50 %.",
-         "→ Validado con <b>Hipótesis H2</b>"),
-        ("OBJ 3", "#8e44ad", "Caracterizar el perfil del visitante habitual",
-         "Identificar las variables sociodemográficas (edad, género, frecuencia de visita, "
-         "horario, acompañantes) y de comportamiento de consumo que definen a los distintos "
-         "segmentos de visitantes del parque.",
-         "→ Respaldado con <b>análisis univariado y bivariado</b>"),
-        ("OBJ 4", "#e67e22", "Proponer un modelo comercial basado en la demanda real",
-         "Identificar los giros comerciales con mayor respaldo en las preferencias de consumo "
-         "de los encuestados y traducirlos en un plan de implementación por fases (2026–2036) "
-         "alineado con la capacidad física de cada zona del parque.",
-         "→ Desarrollado en <b>Modelo Comercial</b>"),
-    ]
-    for i, (etiqueta, color, titulo, desc, vinculo) in enumerate(_objetivos):
-        with (obj_col1 if i % 2 == 0 else obj_col2):
-            st.markdown(f"""
-            <div style="background:#f8f9fa;border-radius:10px;padding:1rem 1.1rem;
-                        border-left:5px solid {color};margin-bottom:0.8rem;">
-                <div style="font-size:0.7rem;font-weight:700;color:{color};
-                            text-transform:uppercase;letter-spacing:0.08em;">{etiqueta}</div>
-                <div style="font-size:0.92rem;font-weight:600;color:#1a3a5c;
-                            margin:0.25rem 0 0.4rem;">{titulo}</div>
-                <div style="font-size:0.83rem;color:#444;line-height:1.5;">{desc}</div>
-                <div style="font-size:0.78rem;color:{color};margin-top:0.5rem;">{vinculo}</div>
-            </div>""", unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ── DISEÑO METODOLÓGICO Y CÁLCULO DE MUESTRA ────────────────────────────
-    st.markdown('<p class="section-header">Diseño metodológico y cálculo de la muestra</p>',
+    # ── 2. CÁLCULO DE MUESTRA Y UNIVERSO ─────────────────────────────────────
+    st.markdown('<p class="section-header">2. Diseño metodológico y cálculo de la muestra</p>',
                 unsafe_allow_html=True)
 
     import math as _math
-    _N_univ  = kpis["total_visitas_parque_2025"]   # universo: visitas anuales 2025
-    _Z_conf  = 1.96   # nivel de confianza 95 %
-    _p_var   = 0.50   # proporción esperada (máxima varianza)
+    _N_univ  = kpis["total_visitas_parque_2025"]
+    _Z_conf  = 1.96
+    _p_var   = 0.50
     _q_var   = 0.50
-    _e_err   = 0.07   # margen de error 7 %
-    _n0      = (_Z_conf**2 * _p_var * _q_var) / (_e_err**2)                     # pob. infinita
-    _n_corr  = _n0 / (1 + (_n0 - 1) / _N_univ)                                  # corrección finita
-    _n_form  = int(_math.ceil(_n_corr))                                           # redondeado
-    _n_real  = kpis["n_encuestados"]                                              # encuestas reales
+    _e_err   = 0.07
+    _n0      = (_Z_conf**2 * _p_var * _q_var) / (_e_err**2)
+    _n_corr  = _n0 / (1 + (_n0 - 1) / _N_univ)
+    _n_form  = int(_math.ceil(_n_corr))
+    _n_real  = kpis["n_encuestados"]
 
     met_col1, met_col2 = st.columns([1.1, 1])
     with met_col1:
@@ -390,107 +387,98 @@ if pagina == "🏠 Resumen Ejecutivo":
 
     st.markdown("---")
 
-    # Distribución del perfil del visitante
-    st.markdown('<p class="section-header">Perfil del visitante encuestado</p>', unsafe_allow_html=True)
+    # ── 3. OBJETIVOS DEL ESTUDIO ──────────────────────────────────────────────
+    st.markdown('<p class="section-header">3. Objetivos del estudio</p>', unsafe_allow_html=True)
 
-    # Fila 1: género (donut) + frecuencia (barras horizontales con altura propia)
-    col_a, col_b = st.columns([1, 2])
-    with col_a:
-        if "genero" in enc.columns:
-            st.plotly_chart(pie_categorica(enc["genero"], "Género"), width="stretch")
-    with col_b:
-        if "frecuencia_visita" in enc.columns:
-            st.plotly_chart(
-                bar_categorica(enc["frecuencia_visita"], "Frecuencia de visita",
-                               order=FRECUENCIA_ORDER, horizontal=True),
-                width="stretch"
-            )
+    obj_col1, obj_col2 = st.columns(2)
+    _objetivos = [
+        ("OBJ 1", "#2980b9", "Determinar la viabilidad estadística del plan de 50 kioskos",
+         "Evaluar si la demanda real estimada por el modelo estadístico justifica la cifra "
+         "de 50 kioskos propuesta por el plan masa de la SHOT, o si ese número sobredimensiona "
+         "la oferta comercial.",
+         "→ Validado con <b>Hipótesis H1</b>"),
+        ("OBJ 2", "#27ae60", "Medir la aceptación ciudadana de los kioskos comerciales",
+         "Cuantificar el porcentaje de visitantes que considera adecuada la implementación "
+         "de kioskos en el Parque Bicentenario y contrastar si ese respaldo supera "
+         "estadísticamente el umbral del 50 %.",
+         "→ Validado con <b>Hipótesis H2</b>"),
+        ("OBJ 3", "#8e44ad", "Caracterizar el perfil del visitante habitual",
+         "Identificar las variables sociodemográficas (edad, género, frecuencia de visita, "
+         "horario, acompañantes) y de comportamiento de consumo que definen a los distintos "
+         "segmentos de visitantes del parque.",
+         "→ Respaldado con <b>análisis univariado y bivariado</b>"),
+        ("OBJ 4", "#e67e22", "Proponer un modelo comercial basado en la demanda real",
+         "Identificar los giros comerciales con mayor respaldo en las preferencias de consumo "
+         "de los encuestados y traducirlos en un plan de implementación por fases (2026–2036) "
+         "alineado con la capacidad física de cada zona del parque.",
+         "→ Desarrollado en <b>Modelo Comercial</b>"),
+    ]
+    for i, (etiqueta, color, titulo, desc, vinculo) in enumerate(_objetivos):
+        with (obj_col1 if i % 2 == 0 else obj_col2):
+            st.markdown(f"""
+            <div style="background:#f8f9fa;border-radius:10px;padding:1rem 1.1rem;
+                        border-left:5px solid {color};margin-bottom:0.8rem;">
+                <div style="font-size:0.7rem;font-weight:700;color:{color};
+                            text-transform:uppercase;letter-spacing:0.08em;">{etiqueta}</div>
+                <div style="font-size:0.92rem;font-weight:600;color:#1a3a5c;
+                            margin:0.25rem 0 0.4rem;">{titulo}</div>
+                <div style="font-size:0.83rem;color:#444;line-height:1.5;">{desc}</div>
+                <div style="font-size:0.78rem;color:{color};margin-top:0.5rem;">{vinculo}</div>
+            </div>""", unsafe_allow_html=True)
 
-    # Fila 2: motivo de visita (donut) — tiene muchas categorías, necesita su propio espacio
-    if "motivo_visita" in enc.columns:
-        st.plotly_chart(pie_categorica(enc["motivo_visita"], "Motivo principal de visita"),
-                        width="stretch")
+    st.markdown("---")
 
-    # Estadísticas del parque
-    st.markdown('<p class="section-header">Estadísticas de uso del Parque Bicentenario 2025</p>',
+    # ── 4. PRUEBA DE HIPÓTESIS ────────────────────────────────────────────────
+    st.markdown('<p class="section-header">4. Validación estadística – Prueba de Hipótesis</p>',
                 unsafe_allow_html=True)
 
-    stats_summary = []
-    _total_anual_sum = 0
-    _total_pico_sum = 0
-    for nombre, df_s in stats.items():
-        if "total" in df_s.columns:
-            total_anual = df_s["total"].sum()
-            pico = df_s[["sabado", "domingo"]].sum(axis=1).max() if all(
-                c in df_s.columns for c in ["sabado", "domingo"]) else 0
-            _total_anual_sum += total_anual
-            _total_pico_sum += pico
-            stats_summary.append({
-                "Actividad": nombre,
-                "Visitas anuales": f"{int(total_anual):,}",
-                "Pico fin de semana (semana más alta)": f"{int(pico):,}",
-            })
-    if stats_summary:
-        stats_summary.append({
-            "Actividad": "📊 TOTAL PARQUE",
-            "Visitas anuales": f"{int(_total_anual_sum):,}",
-            "Pico fin de semana (semana más alta)": f"{int(_total_pico_sum):,}",
-        })
-        st.dataframe(pd.DataFrame(stats_summary), width="stretch", hide_index=True)
+    _fc_h = forecast_kioskos(enc, stats)
+    _h1 = test_h1_cantidad_kioskos(enc, _fc_h)
+    _h2 = test_h2_aprobacion_kioskos(enc)
 
-    # Gráfico de líneas: visitas totales al parque por mes
-    import plotly.graph_objects as _go_res
-    _meses_ord = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO",
-                  "JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"]
-    _monthly_totals = {m: 0.0 for m in _meses_ord}
-    for df_s in stats.values():
-        if "total" in df_s.columns and "mes" in df_s.columns:
-            for _, row in df_s.iterrows():
-                m = str(row["mes"]).upper().strip()
-                if m in _monthly_totals:
-                    _monthly_totals[m] += float(row["total"])
-    _mes_vals = [_monthly_totals[m] for m in _meses_ord]
-    _mes_labels = [m.capitalize() for m in _meses_ord]
-    if any(v > 0 for v in _mes_vals):
-        st.markdown('<p class="section-header">Visitas totales al parque por mes</p>',
-                    unsafe_allow_html=True)
-        _fig_linea = _go_res.Figure()
-        _fig_linea.add_trace(_go_res.Scatter(
-            x=_mes_labels, y=_mes_vals,
-            mode="lines+markers+text",
-            line=dict(color="#2980b9", width=3),
-            marker=dict(size=8, color="#2980b9"),
-            text=[f"{int(v):,}" for v in _mes_vals],
-            textposition="top center",
-            name="Visitas totales",
-        ))
-        _y_min_data = min(_mes_vals)
-        _y_ceil = max(28000, int(max(_mes_vals) / 2000 + 1) * 2000)
-        _y_start = int(_y_min_data / 2000) * 2000          # piso del mínimo en múltiplos de 2k
-        _yticks = [0] + list(range(_y_start, _y_ceil + 1, 2000))
-        _ytick_text = ["0"] + [f"{int(v/1000)}k" for v in range(_y_start, _y_ceil + 1, 2000)]
-        _fig_linea.update_layout(
-            plot_bgcolor="white", paper_bgcolor="white",
-            font=dict(family="Arial", size=12),
-            xaxis=dict(showgrid=False, tickangle=-30),
-            yaxis=dict(
-                title="Visitas / mes",
-                gridcolor="#f0f0f0",
-                range=[0, _y_ceil],
-                tickmode="array",
-                tickvals=_yticks,
-                ticktext=_ytick_text,
-            ),
-            margin=dict(l=50, r=20, t=40, b=60),
-            showlegend=False,
-        )
-        st.plotly_chart(_fig_linea, width="stretch")
+    col_h1r, col_h2r = st.columns(2)
+    for _col_h, _res in [(col_h1r, _h1), (col_h2r, _h2)]:
+        _bg  = _res["respuesta_color_bg"]
+        _brd = _res["respuesta_color_brd"]
+        _ico = _res["respuesta_icono"]
+        _p_fmt = f"{_res['p_valor']:.2e}" if _res['p_valor'] < 0.001 else f"{_res['p_valor']:.4f}"
+        with _col_h:
+            st.markdown(f"""
+            <div style="background:{_bg};border-radius:12px;padding:1.2rem;
+                        border-left:6px solid {_brd};height:100%;">
+                <div style="font-size:0.78rem;font-weight:600;color:#555;
+                            text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.4rem;">
+                    {_res['id']} — {_res['pregunta']}
+                </div>
+                <div style="font-size:1.05rem;font-weight:700;color:{_brd};margin-bottom:0.6rem;
+                            line-height:1.4;">
+                    {_ico} {_res['respuesta_directa']}
+                </div>
+                <div style="font-size:0.78rem;color:#666;">
+                    {_res['test']} &nbsp;|&nbsp; Z = {_res['z_stat']} &nbsp;|&nbsp; p = {_p_fmt}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    # ── HALLAZGOS ANÁLISIS UNIVARIADO ───────────────────────────────────────
-    st.markdown('<p class="section-header">Hallazgos del análisis univariado – perfil y comportamiento</p>',
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        st.plotly_chart(fig_h1_distribucion(_h1), width="stretch")
+    with col_g2:
+        st.plotly_chart(fig_h2_distribucion(_h2), width="stretch")
+
+    _insight(
+        f"<b>H1 (50 kioskos SHOT):</b> {_h1['conclusion']} &nbsp;&nbsp; "
+        f"<b>H2 (aprobación ciudadana):</b> {_h2['conclusion']}",
+        _h1["rechaza_H0"] and _h2["rechaza_H0"],
+    )
+
+    st.markdown("---")
+
+    # ── 5. PERFIL SOCIODEMOGRÁFICO ────────────────────────────────────────────
+    st.markdown('<p class="section-header">5. Perfil sociodemográfico del visitante</p>',
                 unsafe_allow_html=True)
 
-    # ── helpers locales ──────────────────────────────────────────────────────
+    # helpers locales
     def _top1(col):
         s = enc[col].dropna()
         if s.empty: return "–", 0.0
@@ -501,16 +489,12 @@ if pagina == "🏠 Resumen Ejecutivo":
         s = enc[col].dropna().str.strip().str.lower()
         return round(s.isin([val.lower()]).sum() / len(s) * 100, 1) if len(s) else 0.0
 
-    # Calcular valores clave
-    _gen_top, _gen_pct   = _top1("genero") if "genero" in enc.columns else ("–", 0)
-    _frec_top, _frec_pct = _top1("frecuencia_visita") if "frecuencia_visita" in enc.columns else ("–", 0)
+    _gen_top, _gen_pct       = _top1("genero") if "genero" in enc.columns else ("–", 0)
     _motivo_top, _motivo_pct = _top1("motivo_visita") if "motivo_visita" in enc.columns else ("–", 0)
     _acomp_top, _acomp_pct   = _top1("acompanante") if "acompanante" in enc.columns else ("–", 0)
     _gasto_top, _gasto_pct   = _top1("gasto_dispuesto") if "gasto_dispuesto" in enc.columns else ("–", 0)
+    _edad_med = round(enc["edad"].dropna().median(), 0) if "edad" in enc.columns else kpis["edad_promedio"]
 
-    _edad_med    = round(enc["edad"].dropna().median(), 0) if "edad" in enc.columns else kpis["edad_promedio"]
-
-    # Productos de interés (multiselect — tomar moda)
     if "productos_interes" in enc.columns:
         _prod_counts = enc["productos_interes"].dropna().value_counts()
         _prod_top  = str(_prod_counts.index[0]) if len(_prod_counts) else "–"
@@ -518,36 +502,56 @@ if pagina == "🏠 Resumen Ejecutivo":
         _prod_top3 = str(_prod_counts.index[2]) if len(_prod_counts) > 2 else ""
         _prod_pct  = round(_prod_counts.iloc[0] / len(enc["productos_interes"].dropna()) * 100, 1) if len(_prod_counts) else 0
     else:
+        _prod_counts = None
         _prod_top, _prod_top2, _prod_top3, _prod_pct = "–", "", "", 0
 
-    _calif_med = round(enc["calificacion_oferta"].dropna().mean(), 2) if "calificacion_oferta" in enc.columns else kpis["calificacion_promedio"]
+    _calif_med   = round(enc["calificacion_oferta"].dropna().mean(), 2) if "calificacion_oferta" in enc.columns else kpis["calificacion_promedio"]
     _consumo_pct = kpis["consumiria_pct"]
     _aprueba_pct = kpis["aprueba_kiosko_pct"]
     _mejora_pct  = kpis["mejora_experiencia_pct"]
 
-    # Tarjetas univariadas en dos bloques
-    st.markdown("**Perfil sociodemográfico del visitante**")
-    _u_cols = st.columns(4)
-    _uni_cards_1 = [
-        ("Género predominante", _gen_top, f"{_gen_pct}% de encuestados", "#2980b9"),
-        ("Edad mediana", f"{int(_edad_med)} años", f"Promedio: {kpis['edad_promedio']} años", "#2980b9"),
-        ("Frecuencia de visita más común", _frec_top, f"{_frec_pct}% de encuestados", "#8e44ad"),
-        ("Motivo de visita principal", _motivo_top, f"{_motivo_pct}% de encuestados", "#8e44ad"),
-    ]
-    for col_u, (titulo, valor, sub, color) in zip(_u_cols, _uni_cards_1):
-        with col_u:
-            st.markdown(f"""
-            <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
-                        border-top:4px solid {color};text-align:center;min-height:110px;">
-                <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">{titulo}</div>
-                <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;line-height:1.2;">{valor}</div>
-                <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{sub}</div>
-            </div>""", unsafe_allow_html=True)
+    # Fila 1: KPI cards de resumen general
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-value">{kpis['n_encuestados']}</div>
+            <div class="kpi-label">Encuestados</div></div>""", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-value">{kpis['consumiria_pct']}%</div>
+            <div class="kpi-label">Consumiría en el parque</div></div>""", unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-value">{kpis['aprueba_kiosko_pct']}%</div>
+            <div class="kpi-label">Aprueba kioskos</div></div>""", unsafe_allow_html=True)
+    with col4:
+        st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-value">{kpis['calificacion_promedio']}/5</div>
+            <div class="kpi-label">Calificación actual del parque</div></div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    _cu1, _cu2, _cu3, _cu4 = st.columns(4)
+    col5, col6, col7, col8 = st.columns(4)
+    with col5:
+        st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-value">{kpis['edad_promedio']} años</div>
+            <div class="kpi-label">Edad promedio del visitante</div></div>""", unsafe_allow_html=True)
+    with col6:
+        st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-value">${kpis['gasto_promedio_usd']}</div>
+            <div class="kpi-label">Gasto promedio dispuesto</div></div>""", unsafe_allow_html=True)
+    with col7:
+        st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-value">{kpis['mejora_experiencia_pct']}%</div>
+            <div class="kpi-label">Cree que kioskos mejorarían exp.</div></div>""", unsafe_allow_html=True)
+    with col8:
+        st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-value">{kpis['total_visitas_parque_2025']:,}</div>
+            <div class="kpi-label">Visitas totales 2025</div></div>""", unsafe_allow_html=True)
 
-    # Tarjeta 1: acompañante
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Tarjetas de detalle sociodemográfico
+    _cu1, _cu2, _cu3, _cu4 = st.columns(4)
     with _cu1:
         st.markdown(f"""
         <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
@@ -556,8 +560,6 @@ if pagina == "🏠 Resumen Ejecutivo":
             <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_acomp_top}</div>
             <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_acomp_pct}% de encuestados</div>
         </div>""", unsafe_allow_html=True)
-
-    # Tarjeta 2: horario semana vs fin de semana
     with _cu2:
         st.markdown("""
         <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
@@ -577,8 +579,6 @@ if pagina == "🏠 Resumen Ejecutivo":
                 </tr>
             </table>
         </div>""", unsafe_allow_html=True)
-
-    # Tarjeta 3: calificación
     with _cu3:
         st.markdown(f"""
         <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
@@ -587,8 +587,6 @@ if pagina == "🏠 Resumen Ejecutivo":
             <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_calif_med}/5</div>
             <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">Escala 1 (muy mala) a 5 (muy buena)</div>
         </div>""", unsafe_allow_html=True)
-
-    # Tarjeta 4: producto
     with _cu4:
         st.markdown(f"""
         <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
@@ -599,7 +597,6 @@ if pagina == "🏠 Resumen Ejecutivo":
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("**Actitudes hacia los kioskos comerciales**")
     _u_cols3 = st.columns(3)
     _uni_cards_3 = [
         ("Consumiría en el parque", f"{_consumo_pct}%", "Demanda potencial de servicios comerciales", "#27ae60"),
@@ -616,30 +613,68 @@ if pagina == "🏠 Resumen Ejecutivo":
                 <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{sub}</div>
             </div>""", unsafe_allow_html=True)
 
-    if _prod_top2 or _prod_top3:
-        _prods_str = " · ".join(filter(None, [_prod_top, _prod_top2, _prod_top3]))
-        st.markdown(f"""
-        <div style="background:#f0f4fa;border-radius:8px;padding:0.7rem 1rem;
-                    margin-top:0.5rem;font-size:0.85rem;">
-            <b>Top productos/servicios de interés:</b> {_prods_str}
-            &nbsp;&mdash;&nbsp;
-            <b>Gasto dispuesto más frecuente:</b> {_gasto_top} ({_gasto_pct}% de encuestados)
-        </div>""", unsafe_allow_html=True)
-
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── HALLAZGOS ANÁLISIS BIVARIADO ─────────────────────────────────────────
-    st.markdown('<p class="section-header">Hallazgos del análisis bivariado – relaciones entre variables</p>',
+    # Gráficos de perfil: género | distribución de edad | motivo de visita
+    _pc1, _pc2, _pc3 = st.columns(3)
+    with _pc1:
+        if "genero" in enc.columns:
+            st.plotly_chart(pie_categorica(enc["genero"], "Género"), width="stretch")
+    with _pc2:
+        if "edad" in enc.columns:
+            import pandas as _pd_age
+            _edad_bins = _pd_age.cut(
+                enc["edad"].dropna(),
+                bins=[0, 20, 30, 40, 50, 60, 120],
+                labels=["< 20", "20–29", "30–39", "40–49", "50–59", "60+"],
+            )
+            st.plotly_chart(
+                bar_categorica(_edad_bins.astype(str), "Distribución de edad",
+                               order=["< 20","20–29","30–39","40–49","50–59","60+"],
+                               horizontal=True),
+                width="stretch",
+            )
+    with _pc3:
+        if "motivo_visita" in enc.columns:
+            st.plotly_chart(pie_categorica(enc["motivo_visita"], "Motivo principal de visita"),
+                            width="stretch")
+
+    st.markdown("---")
+
+    # ── 6. LO QUE PIDE LA GENTE ──────────────────────────────────────────────
+    st.markdown('<p class="section-header">6. Lo que pide la ciudadanía</p>',
                 unsafe_allow_html=True)
 
-    # Ejecutar todos los tests bivariados
+    _wc_col, _tab_col = st.columns([3, 2])
+    with _wc_col:
+        if "comentarios" in enc.columns and enc["comentarios"].notna().sum() > 5:
+            img_b64 = wordcloud_img(enc)
+            st.markdown(
+                f'<img src="data:image/png;base64,{img_b64}" style="width:100%;border-radius:8px;">',
+                unsafe_allow_html=True,
+            )
+            st.caption("Palabras más frecuentes en comentarios y sugerencias de los encuestados")
+    with _tab_col:
+        if _prod_counts is not None and len(_prod_counts) > 0:
+            _top_prod_df = _prod_counts.reset_index()
+            _top_prod_df.columns = ["Producto / Servicio", "Menciones"]
+            _n_enc_prod = len(enc["productos_interes"].dropna())
+            _top_prod_df["%"] = (_top_prod_df["Menciones"] / _n_enc_prod * 100).round(1)
+            st.markdown("**Productos y servicios más solicitados**")
+            st.dataframe(_top_prod_df, hide_index=True, width="stretch")
+
+    st.markdown("---")
+
+    # ── 7. BIVARIADO ──────────────────────────────────────────────────────────
+    st.markdown('<p class="section-header">7. Hallazgos del análisis bivariado – relaciones entre variables</p>',
+                unsafe_allow_html=True)
+
     _gasto_map = {"Menos de $2": 1, "Entre $2 y $5": 3.5,
                   "Entre $5 y $10": 7.5, "Entre $10 y $20": 15, "Más de $20": 25}
     _enc_g = enc.copy()
     if "gasto_dispuesto" in enc.columns:
         _enc_g["gasto_num"] = _enc_g["gasto_dispuesto"].map(_gasto_map)
 
-    _biv_tests = []
     _safe_chi  = lambda c1, c2: chi2_test(enc, c1, c2) if (c1 in enc.columns and c2 in enc.columns) else None
     _safe_anov = lambda col_n, col_c: anova_test(_enc_g, col_n, col_c) if (col_n in _enc_g.columns and col_c in _enc_g.columns) else None
 
@@ -664,7 +699,6 @@ if pagina == "🏠 Resumen Ejecutivo":
          "Relaciona disposición de consumo con el monto que pagarían."),
     ]
 
-    # Tabla resumen de tests
     _biv_col1, _biv_col2 = st.columns([1.5, 1])
     with _biv_col1:
         st.markdown("**Tabla resumen de pruebas de asociación (α = 0.05)**")
@@ -709,7 +743,6 @@ if pagina == "🏠 Resumen Ejecutivo":
             <div style="font-size:0.78rem;color:#555;margin-bottom:0.3rem;">Relaciones estadísticamente significativas</div>
             <div style="font-size:1.8rem;font-weight:700;color:#2980b9;">{_n_sig} <span style="font-size:1rem;color:#888;">de {_n_total}</span></div>
         </div>""", unsafe_allow_html=True)
-
         for (v1, v2, res, desc) in _tests_def:
             if res is None or not res["significativo"]:
                 continue
@@ -721,72 +754,15 @@ if pagina == "🏠 Resumen Ejecutivo":
                 <div style="font-size:0.75rem;color:#27ae60;margin-top:0.2rem;">{res['interpretacion'][:100]}...</div>
             </div>""", unsafe_allow_html=True)
 
-    # Nube de palabras de comentarios
-    st.markdown('<p class="section-header">Lo que pide la ciudadanía (nube de palabras)</p>',
-                unsafe_allow_html=True)
-    if "comentarios" in enc.columns and enc["comentarios"].notna().sum() > 5:
-        img_b64 = wordcloud_img(enc)
-        st.markdown(
-            f'<img src="data:image/png;base64,{img_b64}" style="width:100%;border-radius:8px;">',
-            unsafe_allow_html=True,
-        )
-        st.caption("Palabras más frecuentes en comentarios y sugerencias de los encuestados")
-
-    # ── PRUEBA DE HIPÓTESIS ──────────────────────────────────────────────────
     st.markdown("---")
-    st.markdown('<p class="section-header">Validación estadística – Prueba de Hipótesis</p>',
-                unsafe_allow_html=True)
 
-    _fc_h = forecast_kioskos(enc, stats)
-    _h1 = test_h1_cantidad_kioskos(enc, _fc_h)
-    _h2 = test_h2_aprobacion_kioskos(enc)
-
-    col_h1r, col_h2r = st.columns(2)
-
-    for _col_h, _res in [(col_h1r, _h1), (col_h2r, _h2)]:
-        _bg  = _res["respuesta_color_bg"]
-        _brd = _res["respuesta_color_brd"]
-        _ico = _res["respuesta_icono"]
-        _p_fmt = f"{_res['p_valor']:.2e}" if _res['p_valor'] < 0.001 else f"{_res['p_valor']:.4f}"
-        with _col_h:
-            st.markdown(f"""
-            <div style="background:{_bg};border-radius:12px;padding:1.2rem;
-                        border-left:6px solid {_brd};height:100%;">
-                <div style="font-size:0.78rem;font-weight:600;color:#555;
-                            text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.4rem;">
-                    {_res['id']} — {_res['pregunta']}
-                </div>
-                <div style="font-size:1.05rem;font-weight:700;color:{_brd};margin-bottom:0.6rem;
-                            line-height:1.4;">
-                    {_ico} {_res['respuesta_directa']}
-                </div>
-                <div style="font-size:0.78rem;color:#666;">
-                    {_res['test']} &nbsp;|&nbsp; Z = {_res['z_stat']} &nbsp;|&nbsp; p = {_p_fmt}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    col_g1, col_g2 = st.columns(2)
-    with col_g1:
-        st.plotly_chart(fig_h1_distribucion(_h1), width="stretch")
-    with col_g2:
-        st.plotly_chart(fig_h2_distribucion(_h2), width="stretch")
-
-    _insight(
-        f"<b>H1 (50 kioskos SHOT):</b> {_h1['conclusion']} &nbsp;&nbsp; "
-        f"<b>H2 (aprobación ciudadana):</b> {_h2['conclusion']}",
-        _h1["rechaza_H0"] and _h2["rechaza_H0"],
-    )
-
-    # ── MODELO COMERCIAL ─────────────────────────────────────────────────────
-    st.markdown("---")
-    st.markdown('<p class="section-header">Modelo Comercial – Kioskos propuestos (2026–2036)</p>',
+    # ── 8. MODELO COMERCIAL ───────────────────────────────────────────────────
+    st.markdown('<p class="section-header">8. Modelo Comercial – Kioskos propuestos (2026–2036)</p>',
                 unsafe_allow_html=True)
 
     col_chart, col_info = st.columns([3, 2])
     with col_chart:
         st.plotly_chart(fig_kioskos_por_zona(_fc_h), width="stretch")
-
     with col_info:
         _fase1 = min(PLAN_FASES.keys())
         _fase4 = max(PLAN_FASES.keys())
@@ -795,9 +771,7 @@ if pagina == "🏠 Resumen Ejecutivo":
         st.markdown(f"""
         <div style="background:white;border-radius:10px;padding:1.2rem;
                     box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:4px solid #2980b9;">
-            <div style="font-weight:700;color:#1a3a5c;margin-bottom:0.8rem;">
-                Plan de implementación
-            </div>
+            <div style="font-weight:700;color:#1a3a5c;margin-bottom:0.8rem;">Plan de implementación</div>
             <table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
             <tr style="border-bottom:1px solid #eee;">
                 <td style="padding:0.3rem 0;color:#666;">Arranque {_fase1}</td>
@@ -812,13 +786,9 @@ if pagina == "🏠 Resumen Ejecutivo":
         """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("#### Propuesta de implantación — Parque Bicentenario")
-    st.image("src/img/implantación_parque.jpg", use_container_width=True)
-    st.markdown("#### Sectores a intervenir")
-    st.image("src/img/implantación_circulos.jpg", use_container_width=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<p class="section-header">Giros comerciales propuestos y respaldo de la encuesta</p>',
+    # ── 9. GIROS Y DISTRIBUCIÓN EN PLANTA ────────────────────────────────────
+    st.markdown('<p class="section-header">9. Giros comerciales y distribución en el bulevar</p>',
                 unsafe_allow_html=True)
 
     col_giros, col_dem = st.columns([2, 3])
@@ -838,6 +808,20 @@ if pagina == "🏠 Resumen Ejecutivo":
             """, unsafe_allow_html=True)
     with col_dem:
         st.plotly_chart(fig_demanda_por_giro(enc), width="stretch")
+
+    _zona_dist = list(ZONE_DIMENSIONS.keys())[0]
+    _n_k_dist  = PLAN_FASES[min(PLAN_FASES.keys())]["kioskos"].get(_zona_dist, 10)
+    st.plotly_chart(fig_distribucion_comercial(_zona_dist, _n_k_dist), width="stretch")
+
+    st.markdown("---")
+
+    # ── 10. IMÁGENES DE IMPLANTACIÓN ─────────────────────────────────────────
+    st.markdown('<p class="section-header">10. Propuesta de implantación</p>',
+                unsafe_allow_html=True)
+    st.markdown("#### Render de la propuesta — Parque Bicentenario")
+    st.image("src/img/implantación_parque.jpg", use_container_width=True)
+    st.markdown("#### Sectores a intervenir")
+    st.image("src/img/implantación_circulos.jpg", use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1749,14 +1733,14 @@ elif pagina == "🏪 Modelo comercial":
         st.markdown('<p class="section-header">Dimensiones físicas de las zonas</p>',
                     unsafe_allow_html=True)
 
-        # Tarjetas de zona
-        cols_z = st.columns(3)
+        # Tarjetas de zona — centradas (solo hay 1 zona)
         zone_keys = list(ZONE_DIMENSIONS.keys())
+        _z_left, _z_center, _z_right = st.columns([1, 2, 1])
         for ci, zona_name in enumerate(zone_keys):
             dim = ZONE_DIMENSIONS[zona_name]
             area = dim["longitud_m"] * dim["ancho_m"]
             short = zona_name.split("–")[1].strip() if "–" in zona_name else zona_name
-            with cols_z[ci]:
+            with _z_center:
                 st.markdown(f"""
                 <div style="background:white;border-radius:10px;padding:1rem;
                             box-shadow:0 2px 8px rgba(0,0,0,0.08);
@@ -1829,9 +1813,10 @@ elif pagina == "🏪 Modelo comercial":
         # Resumen de tipos por zona
         st.markdown('<p class="section-header">Características de los tipos de kiosko</p>',
                     unsafe_allow_html=True)
-        cols_k = st.columns(3)
+        # Centrado — solo hay 1 tipo de kiosko
+        _, _k_center, _ = st.columns([1, 2, 1])
         for ci, (ksk_key, ksk) in enumerate(KIOSKO_TIPOS.items()):
-            with cols_k[ci]:
+            with _k_center:
                 st.markdown(f"""
                 <div style="background:white;border-radius:10px;padding:1rem;
                             box-shadow:0 2px 8px rgba(0,0,0,0.08);

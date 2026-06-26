@@ -117,8 +117,11 @@ GIRO_PRODUCTO_MAP = {
 # Secuencia de giros recomendada por tipo de zona (se repite cíclicamente)
 GIRO_ROTATION = {
     "comercial_alta_densidad": [
-        "Bebidas", "Comida rápida", "Helados y café",
-        "Snacks saludables", "Artículos para mascotas y souvenirs",
+        # 10 posiciones: los 4 giros principales se repiten, los 2 menos demandados solo 1 vez
+        "Bebidas", "Comida rápida", "Helados y café", "Snacks saludables",
+        "Artículos para mascotas y souvenirs",
+        "Bebidas", "Comida rápida", "Helados y café", "Snacks saludables",
+        "Deportivo",
     ],
     "eventos_espectaculos": [
         "Bebidas", "Comida rápida", "Deportivo", "Snacks saludables",
