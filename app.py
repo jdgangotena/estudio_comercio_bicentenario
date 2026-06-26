@@ -282,6 +282,7 @@ if pagina == "🏠 Resumen Ejecutivo":
     if any(v > 0 for v in _mes_vals):
         st.markdown('<p class="section-header">Visitas totales al parque por mes</p>',
                     unsafe_allow_html=True)
+        _media_visitas = sum(_mes_vals) / len(_mes_vals)
         _fig_linea = _go_res.Figure()
         _fig_linea.add_trace(_go_res.Scatter(
             x=_mes_labels, y=_mes_vals,
@@ -292,6 +293,13 @@ if pagina == "🏠 Resumen Ejecutivo":
             textposition="top center",
             name="Visitas totales",
         ))
+        _fig_linea.add_hline(
+            y=_media_visitas,
+            line=dict(color="#e74c3c", width=1.5, dash="dash"),
+            annotation_text=f"Media: {int(_media_visitas):,}",
+            annotation_position="right",
+            annotation_font=dict(color="#e74c3c", size=11),
+        )
         _y_min_data = min(_mes_vals)
         _y_start = int(_y_min_data / 500) * 500          # piso en múltiplos de 500 (≈18k)
         _y_ceil  = int(max(_mes_vals) / 500 + 2) * 500   # techo con margen
@@ -655,13 +663,9 @@ if pagina == "🏠 Resumen Ejecutivo":
             )
             st.caption("Palabras más frecuentes en comentarios y sugerencias de los encuestados")
     with _tab_col:
-        if _prod_counts is not None and len(_prod_counts) > 0:
-            _top_prod_df = _prod_counts.reset_index()
-            _top_prod_df.columns = ["Producto / Servicio", "Menciones"]
-            _n_enc_prod = len(enc["productos_interes"].dropna())
-            _top_prod_df["%"] = (_top_prod_df["Menciones"] / _n_enc_prod * 100).round(1)
-            st.markdown("**Productos y servicios más solicitados**")
-            st.dataframe(_top_prod_df, hide_index=True, width="stretch")
+        if "comentarios" in enc.columns and enc["comentarios"].notna().sum() > 5:
+            _res_df = analyze_comments(enc)
+            st.plotly_chart(topics_bar(_res_df), width="stretch")
 
     st.markdown("---")
 
