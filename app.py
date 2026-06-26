@@ -12,7 +12,6 @@ sys.path.insert(0, str(Path(__file__).parent / "models"))
 
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import base64
 
 from pipeline import run_pipeline, get_kpi_summary
@@ -417,31 +416,64 @@ if pagina == "🏠 Resumen Ejecutivo":
                 unsafe_allow_html=True)
 
     stats_summary = []
+    _total_anual_sum = 0
+    _total_pico_sum = 0
     for nombre, df_s in stats.items():
         if "total" in df_s.columns:
             total_anual = df_s["total"].sum()
             pico = df_s[["sabado", "domingo"]].sum(axis=1).max() if all(
                 c in df_s.columns for c in ["sabado", "domingo"]) else 0
+            _total_anual_sum += total_anual
+            _total_pico_sum += pico
             stats_summary.append({
-                "Zona / Actividad": nombre,
+                "Actividad": nombre,
                 "Visitas anuales": f"{int(total_anual):,}",
                 "Pico fin de semana (semana más alta)": f"{int(pico):,}",
             })
     if stats_summary:
+        stats_summary.append({
+            "Actividad": "📊 TOTAL PARQUE",
+            "Visitas anuales": f"{int(_total_anual_sum):,}",
+            "Pico fin de semana (semana más alta)": f"{int(_total_pico_sum):,}",
+        })
         st.dataframe(pd.DataFrame(stats_summary), width="stretch", hide_index=True)
 
-    # Visitas mensuales – pista de ciclismo como referencia
-    if "USO DE LA PISTA DE CICLISMO" in stats:
-        df_pista = stats["USO DE LA PISTA DE CICLISMO"]
-        st.markdown('<p class="section-header">Visitas mensuales – Pista de Ciclismo (actividad principal)</p>',
+    # Gráfico de líneas: visitas totales al parque por mes
+    import plotly.graph_objects as _go_res
+    _meses_ord = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO",
+                  "JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"]
+    _monthly_totals = {m: 0.0 for m in _meses_ord}
+    for df_s in stats.values():
+        if "total" in df_s.columns and "mes" in df_s.columns:
+            for _, row in df_s.iterrows():
+                m = str(row["mes"]).upper().strip()
+                if m in _monthly_totals:
+                    _monthly_totals[m] += float(row["total"])
+    _mes_vals = [_monthly_totals[m] for m in _meses_ord]
+    _mes_labels = [m.capitalize() for m in _meses_ord]
+    if any(v > 0 for v in _mes_vals):
+        st.markdown('<p class="section-header">Visitas totales al parque por mes</p>',
                     unsafe_allow_html=True)
-        fig_mes = px.bar(df_pista, x="mes", y="total", color_discrete_sequence=["#2980b9"],
-                         labels={"mes": "Mes", "total": "Visitas"},
-                         text="total")
-        fig_mes.update_traces(textposition="outside")
-        fig_mes.update_layout(plot_bgcolor="white", paper_bgcolor="white",
-                               xaxis=dict(showgrid=False), yaxis=dict(gridcolor="#f0f0f0"))
-        st.plotly_chart(fig_mes, width="stretch")
+        _fig_linea = _go_res.Figure()
+        _fig_linea.add_trace(_go_res.Scatter(
+            x=_mes_labels, y=_mes_vals,
+            mode="lines+markers+text",
+            line=dict(color="#2980b9", width=3),
+            marker=dict(size=8, color="#2980b9"),
+            text=[f"{int(v):,}" for v in _mes_vals],
+            textposition="top center",
+            name="Visitas totales",
+        ))
+        _fig_linea.update_layout(
+            plot_bgcolor="white", paper_bgcolor="white",
+            font=dict(family="Arial", size=12),
+            xaxis=dict(showgrid=False, tickangle=-30),
+            yaxis=dict(title="Visitas / mes", gridcolor="#f0f0f0",
+                       range=[0, max(_mes_vals) * 1.2]),
+            margin=dict(l=40, r=20, t=40, b=60),
+            showlegend=False,
+        )
+        st.plotly_chart(_fig_linea, width="stretch")
 
     # ── HALLAZGOS ANÁLISIS UNIVARIADO ───────────────────────────────────────
     st.markdown('<p class="section-header">Hallazgos del análisis univariado – perfil y comportamiento</p>',

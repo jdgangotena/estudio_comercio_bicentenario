@@ -17,45 +17,35 @@ PALETTE = px.colors.qualitative.Safe
 # ── Dimensiones físicas de cada zona ──────────────────────────────────────────
 ZONE_DIMENSIONS = {
     "Zona 1 – Bulevar de las Canchas": {
-        "longitud_m": 2000,
-        "ancho_m": 12,        # ancho del bulevar peatonal (la calzada vehicular ocupa los 20m totales)
-        "lados_disponibles": 1,           # kioscos en un solo lado del bulevar peatonal
-        "tipo_zona": "Bulevar peatonal",
+        # Geometría real: 4 cuerpos (160 m total)
+        # Cuerpos 1 y 2 (anchos): 50 m × 40 m — frente al parqueadero, plazas amplias
+        # Cuerpos 3 y 4 (angostos): 30 m × 12 m — junto a las canchas, pasaje lineal
+        "longitud_m": 160,
+        "ancho_m": 30,          # promedio ponderado: (2×50×40 + 2×30×12) / 160 ≈ 30 m
+        "lados_disponibles": 1,
+        "tipo_zona": "Bulevar mixto (plazas + pasaje)",
         "color": "#2980b9",
+        "max_kioskos_fisico": 50,   # capacidad máxima física para infraestructura
+        "secciones": [
+            {"nombre": "Cuerpo 1 – Plaza parqueadero", "longitud_m": 50, "ancho_m": 40, "kioskos_max": 12},
+            {"nombre": "Cuerpo 2 – Plaza parqueadero", "longitud_m": 50, "ancho_m": 40, "kioskos_max": 12},
+            {"nombre": "Cuerpo 3 – Pasaje canchas",    "longitud_m": 30, "ancho_m": 12, "kioskos_max": 13},
+            {"nombre": "Cuerpo 4 – Pasaje canchas",    "longitud_m": 30, "ancho_m": 12, "kioskos_max": 13},
+        ],
     },
 }
 
 # ── Tipos de kiosko disponibles ────────────────────────────────────────────────
 KIOSKO_TIPOS = {
-    "3×2 m  (6 m²) – Pequeño": {
-        "ancho_m": 3,       # dimensión paralela al camino (a lo largo)
-        "fondo_m": 2,       # dimensión perpendicular al camino (hacia adentro)
-        "area_m2": 6,
-        "categoria": "Pequeño",
-        "descripcion": "Ideal para servicio rápido: bebidas, snacks, helados. "
-                       "Perfecto para zonas deportivas y camineras estrechas.",
-        "usos_recomendados": "Bebidas hidratantes, snacks, helados, café rápido",
-        "color": "#3498db",
-    },
     "3×3 m  (9 m²) – Mediano": {
         "ancho_m": 3,
         "fondo_m": 3,
         "area_m2": 9,
         "categoria": "Mediano",
-        "descripcion": "Versátil para gastronomía ligera y productos saludables. "
-                       "Equilibrio entre capacidad y huella en el espacio público.",
-        "usos_recomendados": "Comida rápida saludable, jugos naturales, sánduches, snacks",
+        "descripcion": "Kiosko estándar del proyecto. Versátil para gastronomía ligera, "
+                       "bebidas y productos saludables. Equilibrio entre capacidad y huella.",
+        "usos_recomendados": "Bebidas, comida rápida saludable, jugos naturales, snacks, helados",
         "color": "#27ae60",
-    },
-    "6×4 m  (24 m²) – Grande": {
-        "ancho_m": 6,
-        "fondo_m": 4,
-        "area_m2": 24,
-        "categoria": "Grande",
-        "descripcion": "Para oferta gastronómica amplia, con área de preparación y vitrina. "
-                       "Requiere espacio suficiente; solo viable en zona de bulevar.",
-        "usos_recomendados": "Restaurante de parque, cafetería, artesanías, productos locales",
-        "color": "#e74c3c",
     },
 }
 
@@ -78,7 +68,7 @@ SPATIAL_PARAMS = {
 COMMERCIAL_PARAMS = {
     # Distancia MÍNIMA entre kioskos del MISMO giro (para no canibalizarse)
     "distancia_min_mismo_giro_m": {
-        "comercial_alta_densidad": 250,   # bulevar largo: cada kiosko igual necesita su territorio
+        "comercial_alta_densidad": 30,    # bulevar 160m: distancia mínima entre kioskos del mismo giro
         "eventos_espectaculos": 50,        # zona corta: imposible separar mucho
         "deportivo": 120,                  # caminera: usuarios pasan en movimiento
     },
@@ -106,8 +96,8 @@ GIROS = {
                              "descripcion": "Frutas, yogur, granola, snacks naturales, barras energéticas"},
     "Helados y café":       {"icono": "🍦", "color": "#8e44ad",
                              "descripcion": "Helados artesanales, café, infusiones, postres ligeros"},
-    "Artesanías":           {"icono": "🎨", "color": "#c0392b",
-                             "descripcion": "Artesanías locales, souvenirs del parque, productos culturales"},
+    "Artículos para mascotas y souvenirs": {"icono": "🐾", "color": "#c0392b",
+                             "descripcion": "Accesorios para mascotas, souvenirs del parque, artesanías locales"},
     "Deportivo":            {"icono": "🏃", "color": "#16a085",
                              "descripcion": "Accesorios deportivos, protector solar, kits de hidratación"},
 }
@@ -120,7 +110,7 @@ GIRO_PRODUCTO_MAP = {
     "Comida rápida":     ["Comida rápida"],
     "Snacks saludables": ["Productos saludables"],
     "Helados y café":    ["Heladería", "Cafeterías"],
-    "Artesanías":        ["Artesanías"],
+    "Artículos para mascotas y souvenirs": ["Tienda de mascotas", "Artesanías"],
     "Deportivo":         ["Servicios deportivos", "Alquiler de bicicletas/scooters"],
 }
 
@@ -128,7 +118,7 @@ GIRO_PRODUCTO_MAP = {
 GIRO_ROTATION = {
     "comercial_alta_densidad": [
         "Bebidas", "Comida rápida", "Helados y café",
-        "Snacks saludables", "Artesanías",
+        "Snacks saludables", "Artículos para mascotas y souvenirs",
     ],
     "eventos_espectaculos": [
         "Bebidas", "Comida rápida", "Deportivo", "Snacks saludables",
@@ -355,31 +345,50 @@ def _observacion_cabe(cabe: bool, libre: float, lados: int) -> str:
 def _max_kioskos_por_longitud(zona_name: str, kiosko_key: str) -> dict:
     """
     Calcula cuántos kioskos caben físicamente a lo largo de la zona.
+    Si la zona define max_kioskos_fisico, ese valor es el techo absoluto.
+    Para zonas con secciones heterogéneas, suma la capacidad de cada cuerpo.
     """
     dim = ZONE_DIMENSIONS[zona_name]
     ksk = KIOSKO_TIPOS[kiosko_key]
     sp = SPATIAL_PARAMS
-    L = dim["longitud_m"]
     ancho_ksk = ksk["ancho_m"]
     sep = sp["separacion_entre_kioskos_m"]
 
-    # Máximo absoluto (sin respetar clusters)
-    max_absoluto = max(1, int(L / (ancho_ksk + sep)))
+    if "secciones" in dim:
+        # Suma capacidad por cuerpo
+        total_abs = 0
+        total_prac = 0
+        for sec in dim["secciones"]:
+            L_sec = sec["longitud_m"]
+            W_sec = sec["ancho_m"]
+            filas = max(1, int((W_sec - sp["circulacion_minima_m"] - sp["servicio_frontal_m"])
+                               / (ksk["fondo_m"] + sp["servicio_frontal_m"])))
+            cols  = max(1, int(L_sec / (ancho_ksk + sep)))
+            total_abs  += cols * filas
+            total_prac += sec.get("kioskos_max", cols * filas)
+        max_fisico = dim.get("max_kioskos_fisico", total_prac)
+        return {
+            "max_absoluto_un_lado": total_abs,
+            "max_practico_un_lado": total_prac,
+            "n_clusters": len(dim["secciones"]),
+            "max_practico_total": min(max_fisico, total_prac),
+            "longitud_m": dim["longitud_m"],
+        }
 
-    # Máximo práctico: clusters de 2-4 kioskos separados 30m
-    # Tamaño cluster: 3 kioskos × ancho + 2 separaciones internas
+    L = dim["longitud_m"]
+    max_absoluto = max(1, int(L / (ancho_ksk + sep)))
     cluster_longitud = 3 * ancho_ksk + 2 * sep
     n_clusters = max(1, int(L / (cluster_longitud + sp["separacion_entre_grupos_m"])))
-    max_practico = n_clusters * 3   # 3 kioskos por cluster
-
+    max_practico = n_clusters * 3
     lados = _ancho_util_por_kiosko(zona_name, kiosko_key)["lados_posibles"]
-    max_practico_total = max_practico * lados
-
+    max_practico_total = max(1, max_practico * lados)
+    if "max_kioskos_fisico" in dim:
+        max_practico_total = min(dim["max_kioskos_fisico"], max_practico_total)
     return {
         "max_absoluto_un_lado": max_absoluto,
         "max_practico_un_lado": max(1, n_clusters * 3),
         "n_clusters": n_clusters,
-        "max_practico_total": max(1, max_practico_total),
+        "max_practico_total": max_practico_total,
         "longitud_m": L,
     }
 
@@ -407,22 +416,8 @@ def spatial_analysis_all() -> pd.DataFrame:
 
 
 def recommend_kiosko_type(zona_name: str) -> str:
-    """
-    Recomienda el tipo de kiosko más adecuado para cada zona
-    basado en espacio disponible y perfil de usuario.
-    """
-    dim = ZONE_DIMENSIONS[zona_name]
-    ancho = dim["ancho_m"]
-
-    if ancho >= 15:
-        # Bulevar ancho: puede albergar el modelo grande o mediano
-        return "3×3 m  (9 m²) – Mediano"  # versátil, atractivo, viable
-    else:
-        # Zonas estrechas (8m): solo pequeño o mediano (6×4 no cabe con servicio)
-        if "Deport" in zona_name or "Pista" in zona_name or "Cancha" in zona_name:
-            return "3×2 m  (6 m²) – Pequeño"   # deportivo: servicio rápido
-        else:
-            return "3×3 m  (9 m²) – Mediano"   # arena: algo más de oferta
+    """Retorna el único tipo de kiosko del proyecto."""
+    return "3×3 m  (9 m²) – Mediano"
 
 
 def fig_layout_zona(zona_name: str, kiosko_key: str,
