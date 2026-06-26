@@ -293,12 +293,12 @@ if pagina == "🏠 Resumen Ejecutivo":
             name="Visitas totales",
         ))
         _y_min_data = min(_mes_vals)
-        _y_ceil = int(max(_mes_vals) / 500 + 2) * 500
-        _y_start = int(_y_min_data / 500) * 500
-        _yticks = [0] + list(range(_y_start, _y_ceil + 1, 500))
+        _y_start = int(_y_min_data / 500) * 500          # piso en múltiplos de 500 (≈18k)
+        _y_ceil  = int(max(_mes_vals) / 500 + 2) * 500   # techo con margen
+        _yticks  = list(range(_y_start, _y_ceil + 1, 500))
         def _fmt_yt(v):
             return f"{int(v//1000)}k" if v % 1000 == 0 else f"{v/1000:.1f}k"
-        _ytick_text = ["0"] + [_fmt_yt(v) for v in range(_y_start, _y_ceil + 1, 500)]
+        _ytick_text = [_fmt_yt(v) for v in _yticks]
         _fig_linea.update_layout(
             plot_bgcolor="white", paper_bgcolor="white",
             font=dict(family="Arial", size=12),
@@ -306,7 +306,7 @@ if pagina == "🏠 Resumen Ejecutivo":
             yaxis=dict(
                 title="Visitas / mes",
                 gridcolor="#f0f0f0",
-                range=[0, _y_ceil],
+                range=[_y_start - 300, _y_ceil],   # empieza justo bajo el primer tick
                 tickmode="array",
                 tickvals=_yticks,
                 ticktext=_ytick_text,
