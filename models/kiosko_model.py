@@ -16,7 +16,7 @@ PALETTE = px.colors.qualitative.Safe
 
 # ── Dimensiones físicas de cada zona ──────────────────────────────────────────
 ZONE_DIMENSIONS = {
-    "Zona 1 – Bulevar Av. Amazonas": {
+    "Zona 1 – Bulevar de las Canchas": {
         "longitud_m": 2000,
         "ancho_m": 12,        # ancho del bulevar peatonal (la calzada vehicular ocupa los 20m totales)
         "lados_disponibles": 1,           # kioscos en un solo lado del bulevar peatonal
@@ -212,13 +212,13 @@ PLAN_FASES = {
         "fase": "Fase 1 – Implementación inicial",
         "contexto": (
             "Apertura del proyecto. Bulevar activo con 142,034 hab. en el sector. "
-            "10 kioskos en el Bulevar Av. Amazonas (1 c/200m) cubren la demanda "
+            "10 kioskos en el Bulevar de las Canchas (1 c/200m) cubren la demanda "
             "actual y establecen el corredor comercial del parque."
         ),
         "poblacion_hab": 142_034,
         "hito": "🟢 Arranque del proyecto",
         "kioskos": {
-            "Zona 1 – Bulevar Av. Amazonas": 10,
+            "Zona 1 – Bulevar de las Canchas": 10,
         },
     },
     2029: {
@@ -231,7 +231,7 @@ PLAN_FASES = {
         "poblacion_hab": 185_000,
         "hito": "🚇 Metro: estaciones Bicentenario + Andalucía",
         "kioskos": {
-            "Zona 1 – Bulevar Av. Amazonas": 16,
+            "Zona 1 – Bulevar de las Canchas": 16,
         },
     },
     2033: {
@@ -244,20 +244,20 @@ PLAN_FASES = {
         "poblacion_hab": 248_000,
         "hito": "🏙️ Rascacielos y densificación urbana",
         "kioskos": {
-            "Zona 1 – Bulevar Av. Amazonas": 20,
+            "Zona 1 – Bulevar de las Canchas": 20,
         },
     },
     2036: {
         "fase": "Fase 4 – Nuevo hipercentro de Quito",
         "contexto": (
             "304,570 hab. en el sector. Metro maduro con 40,000 usuarios/día combinados "
-            "(Bicentenario + Andalucía). Bulevar equiparable al de Av. Amazonas en La "
+            "(Bicentenario + Andalucía). Bulevar de las Canchas como eje comercial maduro en La "
             "Carolina. 25 kioskos (1 c/80m) – máxima densidad comercial sustentable."
         ),
         "poblacion_hab": 304_570,
         "hito": "🏆 Nuevo hipercentro de Quito",
         "kioskos": {
-            "Zona 1 – Bulevar Av. Amazonas": 25,
+            "Zona 1 – Bulevar de las Canchas": 25,
         },
     },
 }
@@ -266,8 +266,8 @@ PLAN_FASES = {
 FACTOR_VISITANTES_NO_CONTABILIZADOS = 2.5
 
 ZONAS = {
-    "Zona 1 – Bulevar Av. Amazonas": {
-        "descripcion": "Bulevar peatonal contiguo a la Av. Amazonas. Zona de paseo familiar, "
+    "Zona 1 – Bulevar de las Canchas": {
+        "descripcion": "Bulevar peatonal de las Canchas del Parque Bicentenario. Zona de paseo familiar, "
                        "recreación y deporte. Concentra toda la demanda del parque: familias, "
                        "deportistas, usuarios de canchas/pistas y visitantes de actividades "
                        "especiales. Eje comercial principal del Parque Bicentenario.",
@@ -783,7 +783,7 @@ def tabla_plan_fases() -> pd.DataFrame:
             "Fase": fd["fase"],
             "Hito": fd["hito"],
             "Población (hab.)": f"{fd['poblacion_hab']:,}",
-            "Bulevar Av. Amazonas": k.get("Zona 1 – Bulevar Av. Amazonas", 0),
+            "Bulevar de las Canchas": k.get("Zona 1 – Bulevar de las Canchas", 0),
             "Total": sum(k.values()),
             "Contexto": fd["contexto"],
         })

@@ -1660,7 +1660,7 @@ elif pagina == "📐 Prueba de Hipótesis":
     <b>Resumen ejecutivo:</b> ambas pruebas son concluyentes (p&lt;0.05).
     La demanda estadística <b>no respalda</b> el plan de 50 kioskos de la SHOT —
     el número técnicamente justificado al año 2036 es <b>25 kioskos</b>
-    en el Bulevar Av. Amazonas, respetando restricciones físicas y comerciales.
+    en el Bulevar de las Canchas, respetando restricciones físicas y comerciales.
     Al mismo tiempo, la ciudadanía <b>sí apoya mayoritariamente</b> la implementación
     de espacios comerciales en el parque, lo que valida el proyecto en su conjunto.
     </div>
@@ -1916,7 +1916,7 @@ elif pagina == "🏪 Modelo comercial":
         st.markdown('<p class="section-header">Rotación de giros por tipo de zona</p>',
                     unsafe_allow_html=True)
         tipo_nombres = {
-            "comercial_alta_densidad": "Bulevar Av. Amazonas",
+            "comercial_alta_densidad": "Bulevar de las Canchas",
         }
         _tipos_activos = {ZONAS[z]["tipo"] for z in ZONAS}
         for tipo_key, rotation in GIRO_ROTATION.items():
@@ -1973,7 +1973,7 @@ elif pagina == "🏪 Modelo comercial":
         st.markdown("---")
 
         # Tráfico peatonal proyectado
-        st.markdown('<p class="section-header">Proyección de tráfico peatonal – Bulevar Av. Amazonas</p>',
+        st.markdown('<p class="section-header">Proyección de tráfico peatonal – Bulevar de las Canchas</p>',
                     unsafe_allow_html=True)
         st.markdown("""
         <div class="insight-box">
@@ -1991,7 +1991,7 @@ elif pagina == "🏪 Modelo comercial":
         from models.kiosko_model import _consumidores_dia_boulevard, _kioskos_por_demanda_pura
         ultimo_año = max(PROYECCION_PARAMS["trafico_boulevard_dia"].keys())
         k_demanda_pura_final = _kioskos_por_demanda_pura(_consumidores_dia_boulevard(ultimo_año))
-        limite_u = ZONE_DIMENSIONS["Zona 1 – Bulevar Av. Amazonas"]["longitud_m"] \
+        limite_u = ZONE_DIMENSIONS["Zona 1 – Bulevar de las Canchas"]["longitud_m"] \
                    // PROYECCION_PARAMS["metros_entre_kioskos_bulevar"]
 
         st.markdown(f"""
@@ -2062,7 +2062,7 @@ elif pagina == "🏪 Modelo comercial":
                     ✅ Plan técnico recomendado (2026–2036)
                 </div>
                 <ul style="color:#2c3e50;font-size:0.85rem;margin-top:0.5rem;">
-                    <li>Zona: <b>Bulevar Av. Amazonas</b> (2,000 m)</li>
+                    <li>Zona: <b>Bulevar de las Canchas</b> (2,000 m)</li>
                     <li>Arranque 2026: <b>{total_ini} kioskos</b> – 1 cada 200 m ✅</li>
                     <li>Proyección 2036: <b>{total_final} kioskos</b> – 1 cada 80 m ✅</li>
                     <li>4 fases: 2026 → 2029 → 2033 → 2036</li>
@@ -2075,11 +2075,11 @@ elif pagina == "🏪 Modelo comercial":
         st.markdown(f"""
         <br>
         <div class="insight-box">
-        <b>Conclusión:</b> Los <b>10 kioskos de arranque en el Bulevar Av. Amazonas</b> son válidos
+        <b>Conclusión:</b> Los <b>10 kioskos de arranque en el Bulevar de las Canchas</b> son válidos
         por dos criterios independientes: densidad urbana (1/200m) y demanda proyectada (que en 2036
         justificaría más del doble). El plan de <b>50 kioskos</b> propuesto por la SHOT no tiene
         respaldo en la demanda real ni en el espacio físico disponible. El máximo técnico razonable
-        para el horizonte 2036 en el Bulevar Av. Amazonas es <b>{total_final} kioskos</b>, respetando
+        para el horizonte 2036 en el Bulevar de las Canchas es <b>{total_final} kioskos</b>, respetando
         distancias comerciales, giros alternados y estándares de circulación peatonal.
         </div>
         """, unsafe_allow_html=True)
@@ -2131,8 +2131,8 @@ competencias deportivas, uso de pistas, etc.). Este conteo tiene **subregistro r
 **Paso 2 – Visitantes estimados reales**
 `Usuarios base × 2.5 (factor no contabilizados) × factor de captación de zona`
 El multiplicador ×2.5 corrige el subregistro: por cada participante registrado, se estima
-que 1.5 más visitan sin quedar en registros. Factor de captación del Bulevar Av. Amazonas:
-**{ZONAS['Zona 1 – Bulevar Av. Amazonas']['factor_captacion']*100:.0f}%** (familias, zona canina, juegos inclusivos,
+que 1.5 más visitan sin quedar en registros. Factor de captación del Bulevar de las Canchas:
+**{ZONAS['Zona 1 – Bulevar de las Canchas']['factor_captacion']*100:.0f}%** (familias, zona canina, juegos inclusivos,
 deportistas, bailoterapia, usuarios de pistas — toda la demanda del parque consolidada).
 
 **Paso 3 – Consumidores potenciales**
