@@ -591,11 +591,27 @@ if pagina == "🏠 Resumen Ejecutivo":
         st.markdown(f"""
         <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
                     border-top:4px solid #e67e22;text-align:center;min-height:130px;">
+            <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Motivo principal de visita</div>
+            <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_motivo_top}</div>
+            <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_motivo_pct}% de encuestados</div>
+        </div>""", unsafe_allow_html=True)
+    with _cu2:
+        st.markdown(f"""
+        <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
+                    border-top:4px solid #e67e22;text-align:center;min-height:130px;">
             <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Visita principalmente con</div>
             <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_acomp_top}</div>
             <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_acomp_pct}% de encuestados</div>
         </div>""", unsafe_allow_html=True)
-    with _cu2:
+    with _cu3:
+        st.markdown(f"""
+        <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
+                    border-top:4px solid #e67e22;text-align:center;min-height:130px;">
+            <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Producto / servicio más demandado</div>
+            <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_prod_top}</div>
+            <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_prod_pct}% lo prefiere</div>
+        </div>""", unsafe_allow_html=True)
+    with _cu4:
         st.markdown("""
         <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
                     border-top:4px solid #e67e22;min-height:130px;">
@@ -613,22 +629,6 @@ if pagina == "🏠 Resumen Ejecutivo":
                     <td style="font-weight:700;color:#1a3a5c;text-align:right;">09:00–12:00 h</td>
                 </tr>
             </table>
-        </div>""", unsafe_allow_html=True)
-    with _cu3:
-        st.markdown(f"""
-        <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
-                    border-top:4px solid #e67e22;text-align:center;min-height:130px;">
-            <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Motivo principal de visita</div>
-            <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_motivo_top}</div>
-            <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_motivo_pct}% de encuestados</div>
-        </div>""", unsafe_allow_html=True)
-    with _cu4:
-        st.markdown(f"""
-        <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
-                    border-top:4px solid #e67e22;text-align:center;min-height:130px;">
-            <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Producto / servicio más demandado</div>
-            <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_prod_top}</div>
-            <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_prod_pct}% lo prefiere</div>
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
