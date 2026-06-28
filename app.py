@@ -528,13 +528,13 @@ if pagina == "🏠 Resumen Ejecutivo":
             <div class="kpi-value">{kpis['n_encuestados']}</div>
             <div class="kpi-label">Encuestados</div></div>""", unsafe_allow_html=True)
     with col3:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['consumiria_pct']}%</div>
-            <div class="kpi-label">Consumiría en el parque</div></div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="kpi-card">
+            <div class="kpi-value">67.5%</div>
+            <div class="kpi-label">Día más visitado — Domingo</div></div>""", unsafe_allow_html=True)
     with col4:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['aprueba_kiosko_pct']}%</div>
-            <div class="kpi-label">Aprueba kioskos</div></div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="kpi-card">
+            <div class="kpi-value">76.2%</div>
+            <div class="kpi-label">Servicio complementario más pedido — Baños</div></div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     col5, col6, col7, col8 = st.columns(4)
@@ -551,9 +551,9 @@ if pagina == "🏠 Resumen Ejecutivo":
             <div class="kpi-value">${kpis['gasto_promedio_usd']}</div>
             <div class="kpi-label">Gasto promedio dispuesto</div></div>""", unsafe_allow_html=True)
     with col8:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['mejora_experiencia_pct']}%</div>
-            <div class="kpi-label">Cree que kioskos mejorarían exp.</div></div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="kpi-card">
+            <div class="kpi-value">78.2%</div>
+            <div class="kpi-label">Sector de residencia — Norte de Quito</div></div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
