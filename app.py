@@ -808,12 +808,12 @@ if pagina == "🏠 Resumen Ejecutivo":
     # Fila 3: proyección de visitantes diarios (ancho completo)
     st.plotly_chart(fig_trafico_parque_total(stats), width="stretch")
 
-    # Fila 4: ingresos diarios
+    # Fila 4: proyección de ingresos por fases
     _ing_col1, _ing_col2 = st.columns(2)
     with _ing_col1:
-        st.plotly_chart(fig_ingresos_diarios_zona(stats, enc), width="stretch")
+        st.plotly_chart(fig_ingresos_fases_zona(stats, enc), width="stretch")
     with _ing_col2:
-        st.plotly_chart(fig_ingresos_diarios_por_kiosko(stats, enc), width="stretch")
+        st.plotly_chart(fig_ingresos_fases_por_kiosko(stats, enc), width="stretch")
 
     st.markdown("---")
 
