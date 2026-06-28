@@ -498,6 +498,12 @@ if pagina == "🏠 Resumen Ejecutivo":
         return round(s.isin([val.lower()]).sum() / len(s) * 100, 1) if len(s) else 0.0
 
     _gen_top, _gen_pct       = _top1("genero") if "genero" in enc.columns else ("–", 0)
+    if "genero" in enc.columns:
+        _gen_vc     = enc["genero"].dropna().str.strip().value_counts(normalize=True).mul(100)
+        _hombre_pct = round(next((v for k, v in _gen_vc.items() if "hombre" in k.lower()), 0.0), 1)
+        _mujer_pct  = round(next((v for k, v in _gen_vc.items() if "mujer"  in k.lower()), 0.0), 1)
+    else:
+        _hombre_pct, _mujer_pct = 0.0, 0.0
     _motivo_top, _motivo_pct = _top1("motivo_visita") if "motivo_visita" in enc.columns else ("–", 0)
     _acomp_top, _acomp_pct   = _top1("acompanante") if "acompanante" in enc.columns else ("–", 0)
     _gasto_top, _gasto_pct   = _top1("gasto_dispuesto") if "gasto_dispuesto" in enc.columns else ("–", 0)
@@ -537,7 +543,7 @@ if pagina == "🏠 Resumen Ejecutivo":
             <div class="kpi-label">Servicio complementario más pedido — Baños</div></div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    col5, col6, col7 = st.columns(3)
+    col5, col6, col7, col8 = st.columns(4)
     with col5:
         st.markdown(f"""<div class="kpi-card">
             <div class="kpi-value">{kpis['calificacion_promedio']}/5</div>
@@ -550,6 +556,32 @@ if pagina == "🏠 Resumen Ejecutivo":
         st.markdown("""<div class="kpi-card">
             <div class="kpi-value">78.2%</div>
             <div class="kpi-label">Sector de residencia — Norte de Quito</div></div>""", unsafe_allow_html=True)
+    with col8:
+        st.markdown(f"""
+        <div class="kpi-card" style="padding:0.8rem 1rem;">
+            <div style="font-size:0.72rem;color:#666;text-align:center;margin-bottom:0.5rem;">Género del visitante</div>
+            <div style="display:flex;justify-content:space-around;align-items:flex-end;">
+                <div style="text-align:center;">
+                    <svg width="26" height="46" viewBox="0 0 26 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="13" cy="7" r="6" stroke="#1a3a5c" stroke-width="2"/>
+                        <line x1="13" y1="13" x2="13" y2="30" stroke="#1a3a5c" stroke-width="2"/>
+                        <line x1="4"  y1="20" x2="22" y2="20" stroke="#1a3a5c" stroke-width="2"/>
+                        <line x1="13" y1="30" x2="6"  y2="46" stroke="#1a3a5c" stroke-width="2"/>
+                        <line x1="13" y1="30" x2="20" y2="46" stroke="#1a3a5c" stroke-width="2"/>
+                    </svg>
+                    <div style="font-size:1.05rem;font-weight:700;color:#1a3a5c;margin-top:0.3rem;">{_hombre_pct}%</div>
+                    <div style="font-size:0.65rem;color:#888;">Hombres</div>
+                </div>
+                <div style="text-align:center;">
+                    <svg width="26" height="46" viewBox="0 0 26 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="13" cy="7" r="6" stroke="#1a3a5c" stroke-width="2"/>
+                        <path d="M4 14 L22 14 L25 46 L1 46 Z" stroke="#1a3a5c" stroke-width="2" fill="none"/>
+                    </svg>
+                    <div style="font-size:1.05rem;font-weight:700;color:#1a3a5c;margin-top:0.3rem;">{_mujer_pct}%</div>
+                    <div style="font-size:0.65rem;color:#888;">Mujeres</div>
+                </div>
+            </div>
+        </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
