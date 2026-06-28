@@ -513,7 +513,6 @@ if pagina == "🏠 Resumen Ejecutivo":
         _prod_counts = None
         _prod_top, _prod_top2, _prod_top3, _prod_pct = "–", "", "", 0
 
-    _calif_med   = round(enc["calificacion_oferta"].dropna().mean(), 2) if "calificacion_oferta" in enc.columns else kpis["calificacion_promedio"]
     _consumo_pct = kpis["consumiria_pct"]
     _aprueba_pct = kpis["aprueba_kiosko_pct"]
     _mejora_pct  = kpis["mejora_experiencia_pct"]
@@ -522,43 +521,43 @@ if pagina == "🏠 Resumen Ejecutivo":
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-value">{kpis['total_visitas_parque_2025']:,}</div>
+            <div class="kpi-label">Visitas totales 2025</div></div>""", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-value">{kpis['n_encuestados']}</div>
             <div class="kpi-label">Encuestados</div></div>""", unsafe_allow_html=True)
-    with col2:
+    with col3:
         st.markdown(f"""<div class="kpi-card">
             <div class="kpi-value">{kpis['consumiria_pct']}%</div>
             <div class="kpi-label">Consumiría en el parque</div></div>""", unsafe_allow_html=True)
-    with col3:
+    with col4:
         st.markdown(f"""<div class="kpi-card">
             <div class="kpi-value">{kpis['aprueba_kiosko_pct']}%</div>
             <div class="kpi-label">Aprueba kioskos</div></div>""", unsafe_allow_html=True)
-    with col4:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['calificacion_promedio']}/5</div>
-            <div class="kpi-label">Calificación actual del parque</div></div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     col5, col6, col7, col8 = st.columns(4)
     with col5:
         st.markdown(f"""<div class="kpi-card">
+            <div class="kpi-value">{kpis['calificacion_promedio']}/5</div>
+            <div class="kpi-label">Calificación actual del parque</div></div>""", unsafe_allow_html=True)
+    with col6:
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-value">{kpis['edad_promedio']} años</div>
             <div class="kpi-label">Edad promedio del visitante</div></div>""", unsafe_allow_html=True)
-    with col6:
+    with col7:
         st.markdown(f"""<div class="kpi-card">
             <div class="kpi-value">${kpis['gasto_promedio_usd']}</div>
             <div class="kpi-label">Gasto promedio dispuesto</div></div>""", unsafe_allow_html=True)
-    with col7:
+    with col8:
         st.markdown(f"""<div class="kpi-card">
             <div class="kpi-value">{kpis['mejora_experiencia_pct']}%</div>
             <div class="kpi-label">Cree que kioskos mejorarían exp.</div></div>""", unsafe_allow_html=True)
-    with col8:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">{kpis['total_visitas_parque_2025']:,}</div>
-            <div class="kpi-label">Visitas totales 2025</div></div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Tarjetas de detalle sociodemográfico
+    # Tarjetas de detalle sociodemográfico (todas naranja)
     _cu1, _cu2, _cu3, _cu4 = st.columns(4)
     with _cu1:
         st.markdown(f"""
@@ -590,15 +589,15 @@ if pagina == "🏠 Resumen Ejecutivo":
     with _cu3:
         st.markdown(f"""
         <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
-                    border-top:4px solid #e74c3c;text-align:center;min-height:130px;">
-            <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Calificación actual del parque</div>
-            <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_calif_med}/5</div>
-            <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">Escala 1 (muy mala) a 5 (muy buena)</div>
+                    border-top:4px solid #e67e22;text-align:center;min-height:130px;">
+            <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Motivo principal de visita</div>
+            <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_motivo_top}</div>
+            <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_motivo_pct}% de encuestados</div>
         </div>""", unsafe_allow_html=True)
     with _cu4:
         st.markdown(f"""
         <div style="background:#f8f9fa;border-radius:10px;padding:0.9rem 1rem;
-                    border-top:4px solid #27ae60;text-align:center;min-height:130px;">
+                    border-top:4px solid #e67e22;text-align:center;min-height:130px;">
             <div style="font-size:0.72rem;color:#666;margin-bottom:0.3rem;">Producto / servicio más demandado</div>
             <div style="font-size:1.25rem;font-weight:700;color:#1a3a5c;">{_prod_top}</div>
             <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">{_prod_pct}% lo prefiere</div>
