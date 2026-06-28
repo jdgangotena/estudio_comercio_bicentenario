@@ -802,6 +802,38 @@ if pagina == "🏠 Resumen Ejecutivo":
     </div>
     """, unsafe_allow_html=True)
 
+    # Contexto urbano: por qué crece la demanda
+    _pob_2026 = PROYECCION_PARAMS["poblacion_sector_hab"][2026]
+    _pob_2036 = PROYECCION_PARAMS["poblacion_sector_hab"][2036]
+    st.markdown("""
+    <div class="insight-box">
+    <b>¿Por qué crece la demanda?</b> El sector Parque Bicentenario está en transformación
+    urbana acelerada: la población pasará de <b>142,034</b> hab. actuales a <b>304,570</b> en 2036,
+    la edificabilidad sube de 6 a <b>40 pisos</b> (rascacielos aprobados) y se abren
+    <b>2 nuevas estaciones de metro</b> (Bicentenario + Andalucía). Adicionalmente, el
+    <b>AIVA del sector</b> (Área de Intervención Valorativa) está actualmente en <b>$267/m²</b>
+    y se proyecta converger hacia valores similares al Parque La Carolina (<b>$1,895/m²</b>),
+    lo que incrementará el valor de propiedades en el sector conforme el proyecto avance
+    y la zona se consolide como el nuevo polo comercial de Quito.
+    </div>
+    """, unsafe_allow_html=True)
+
+    _ck1, _ck2, _ck3, _ck4 = st.columns(4)
+    with _ck1:
+        st.metric("Población actual (2026)", f"{_pob_2026:,} hab.",
+                  delta=f"+{_pob_2036 - _pob_2026:,} proyectados a 2036")
+    with _ck2:
+        st.metric("Nuevas paradas metro", "2",
+                  delta="Bicentenario + Andalucía", delta_color="normal")
+    with _ck3:
+        st.metric("Edificabilidad", "Hasta 40 pisos",
+                  delta="Antes: 6 pisos", delta_color="normal")
+    with _ck4:
+        st.metric("AIVA Bicentenario", "$267/m²",
+                  delta="Ref. La Carolina: $1,895/m²", delta_color="normal")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
     # Fila 2: proyección de visitantes diarios (ancho completo)
     st.plotly_chart(fig_trafico_parque_total(stats), width="stretch")
 
@@ -2020,7 +2052,7 @@ elif pagina == "🏪 Modelo comercial":
         total_2026 = sum(PLAN_FASES[2026]["kioskos"].values())
         trafico_2036 = sum(PROYECCION_PARAMS["trafico_boulevard_dia"][2036].values())
 
-        col_k1, col_k2, col_k3, col_k4 = st.columns(4)
+        col_k1, col_k2, col_k3, col_k4, col_k5 = st.columns(5)
         with col_k1:
             st.metric("Población actual (2026)",
                       f"{pob_2026:,} hab.",
@@ -2034,6 +2066,9 @@ elif pagina == "🏪 Modelo comercial":
         with col_k4:
             st.metric("Kioskos en 2036", total_2036,
                       delta=f"+{total_2036 - total_2026} vs. arranque 2026")
+        with col_k5:
+            st.metric("AIVA Bicentenario", "$267/m²",
+                      delta="Ref. La Carolina: $1,895/m²", delta_color="normal")
 
         st.markdown("---")
 
