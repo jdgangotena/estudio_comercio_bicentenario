@@ -771,14 +771,15 @@ if pagina == "🏠 Resumen Ejecutivo":
     with _mc_col2:
         st.plotly_chart(fig_visitantes_vs_demanda(stats, enc), width="stretch")
         _consumidores_pct = round(kpis["consumiria_pct"])
-        _total_vis = sum(z["visitantes_diarios_promedio"] for z in _fc_h["zonas"].values())
-        _total_con = sum(z["demanda_diaria_promedio"] for z in _fc_h["zonas"].values())
+        _total_vis = round(kpis["total_visitas_parque_2025"] / 365)
+        _total_con = round(_total_vis * _consumidores_pct / 100)
         st.markdown(
             f'<div style="background:#f0f4fa;border-radius:8px;padding:0.6rem 1rem;'
             f'font-size:0.85rem;text-align:center;">'
-            f'De los <b>{int(_total_vis):,} visitantes/día</b> estimados, el '
-            f'<b style="color:#27ae60;">{_consumidores_pct}%</b> '
-            f'({int(_total_con):,} personas) son consumidores potenciales</div>',
+            f'En el arranque: <b>{_total_vis:,} visitantes/día</b> promedio 2025. '
+            f'El <b style="color:#27ae60;">{_consumidores_pct}%</b> '
+            f'(<b>{_total_con:,} personas</b>) son consumidores potenciales '
+            f'de productos o servicios en el parque.</div>',
             unsafe_allow_html=True,
         )
 
