@@ -537,7 +537,7 @@ if pagina == "🏠 Resumen Ejecutivo":
             <div class="kpi-label">Servicio complementario más pedido — Baños</div></div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    col5, col6, col7, col8 = st.columns(4)
+    col5, col6, col7 = st.columns(3)
     with col5:
         st.markdown(f"""<div class="kpi-card">
             <div class="kpi-value">{kpis['calificacion_promedio']}/5</div>
@@ -547,10 +547,6 @@ if pagina == "🏠 Resumen Ejecutivo":
             <div class="kpi-value">{kpis['edad_promedio']} años</div>
             <div class="kpi-label">Edad promedio del visitante</div></div>""", unsafe_allow_html=True)
     with col7:
-        st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-value">${kpis['gasto_promedio_usd']}</div>
-            <div class="kpi-label">Gasto promedio dispuesto</div></div>""", unsafe_allow_html=True)
-    with col8:
         st.markdown("""<div class="kpi-card">
             <div class="kpi-value">78.2%</div>
             <div class="kpi-label">Sector de residencia — Norte de Quito</div></div>""", unsafe_allow_html=True)
@@ -604,11 +600,12 @@ if pagina == "🏠 Resumen Ejecutivo":
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    _u_cols3 = st.columns(3)
+    _u_cols3 = st.columns(4)
     _uni_cards_3 = [
         ("Consumiría en el parque", f"{_consumo_pct}%", "Demanda potencial de servicios comerciales", "#27ae60"),
         ("Aprueba la implementación de kioskos", f"{_aprueba_pct}%", "Aceptación ciudadana directa", "#27ae60"),
         ("Cree que mejoraría la experiencia", f"{_mejora_pct}%", "Impacto percibido positivo", "#27ae60"),
+        ("Gasto promedio dispuesto", f"${kpis['gasto_promedio_usd']}", "Por visita al parque", "#27ae60"),
     ]
     for col_u, (titulo, valor, sub, color) in zip(_u_cols3, _uni_cards_3):
         with col_u:
