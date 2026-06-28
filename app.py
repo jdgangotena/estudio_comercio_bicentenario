@@ -822,6 +822,8 @@ if pagina == "🏠 Resumen Ejecutivo":
     # ── 10. IMÁGENES DE IMPLANTACIÓN ─────────────────────────────────────────
     st.markdown('<p class="section-header">10. Propuesta de implantación</p>',
                 unsafe_allow_html=True)
+    st.markdown("#### Render de la propuesta — Parque Bicentenario")
+    st.image("src/img/implantación_parque.jpg", use_container_width=True)
     st.markdown("#### Zona de intervención — Bulevar de las Canchas")
     st.markdown(
         '<div style="font-size:0.85rem;color:#555;margin-bottom:0.6rem;">'
@@ -831,8 +833,6 @@ if pagina == "🏠 Resumen Ejecutivo":
         unsafe_allow_html=True,
     )
     st.image("src/img/render_bicentenario_bulevar.png", use_container_width=True)
-    st.markdown("#### Render de la propuesta — Parque Bicentenario")
-    st.image("src/img/implantación_parque.jpg", use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
