@@ -771,8 +771,8 @@ if pagina == "🏠 Resumen Ejecutivo":
     with _mc_col2:
         st.plotly_chart(fig_visitantes_vs_demanda(stats, enc), width="stretch")
         _consumidores_pct = round(kpis["consumiria_pct"])
-        _total_vis = sum(z["visitantes_dia"] for z in _fc_h["zonas"].values())
-        _total_con = sum(z["consumidores_dia"] for z in _fc_h["zonas"].values())
+        _total_vis = sum(z["visitantes_diarios_promedio"] for z in _fc_h["zonas"].values())
+        _total_con = sum(z["demanda_diaria_promedio"] for z in _fc_h["zonas"].values())
         st.markdown(
             f'<div style="background:#f0f4fa;border-radius:8px;padding:0.6rem 1rem;'
             f'font-size:0.85rem;text-align:center;">'
