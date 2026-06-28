@@ -802,11 +802,11 @@ if pagina == "🏠 Resumen Ejecutivo":
     </div>
     """, unsafe_allow_html=True)
 
-    # Fila 2: demanda vs plan (ancho completo)
-    st.plotly_chart(fig_demanda_vs_plan_parque(stats, enc), width="stretch")
-
-    # Fila 3: proyección de visitantes diarios (ancho completo)
+    # Fila 2: proyección de visitantes diarios (ancho completo)
     st.plotly_chart(fig_trafico_parque_total(stats), width="stretch")
+
+    # Fila 3: demanda vs plan (ancho completo)
+    st.plotly_chart(fig_demanda_vs_plan_parque(stats, enc), width="stretch")
 
     # Fila 4: proyección de ingresos por fases
     _ing_col1, _ing_col2 = st.columns(2)
