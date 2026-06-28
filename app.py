@@ -764,30 +764,55 @@ if pagina == "🏠 Resumen Ejecutivo":
     st.markdown('<p class="section-header">8. Modelo Comercial – Kioskos propuestos (2026–2036)</p>',
                 unsafe_allow_html=True)
 
-    col_chart, col_info = st.columns([3, 2])
-    with col_chart:
+    # Fila 1: kioskos por zona  |  visitantes vs consumidores
+    _mc_col1, _mc_col2 = st.columns(2)
+    with _mc_col1:
         st.plotly_chart(fig_kioskos_por_zona(_fc_h), width="stretch")
-    with col_info:
-        _fase1 = min(PLAN_FASES.keys())
-        _fase4 = max(PLAN_FASES.keys())
-        _tot_ini = sum(PLAN_FASES[_fase1]["kioskos"].values())
-        _tot_fin = sum(PLAN_FASES[_fase4]["kioskos"].values())
-        st.markdown(f"""
-        <div style="background:white;border-radius:10px;padding:1.2rem;
-                    box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:4px solid #2980b9;">
-            <div style="font-weight:700;color:#1a3a5c;margin-bottom:0.8rem;">Plan de implementación</div>
-            <table style="width:100%;font-size:0.85rem;border-collapse:collapse;">
-            <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:0.3rem 0;color:#666;">Arranque {_fase1}</td>
-                <td style="font-weight:700;color:#27ae60;text-align:right;">{_tot_ini} kioskos</td>
-            </tr>
-            <tr>
-                <td style="padding:0.3rem 0;color:#666;">Proyección {_fase4}</td>
-                <td style="font-weight:700;color:#e67e22;text-align:right;">{_tot_fin} kioskos</td>
-            </tr>
-            </table>
+    with _mc_col2:
+        st.plotly_chart(fig_visitantes_vs_demanda(stats, enc), width="stretch")
+        _consumidores_pct = round(kpis["consumiria_pct"])
+        _total_vis = sum(z["visitantes_dia"] for z in _fc_h["zonas"].values())
+        _total_con = sum(z["consumidores_dia"] for z in _fc_h["zonas"].values())
+        st.markdown(
+            f'<div style="background:#f0f4fa;border-radius:8px;padding:0.6rem 1rem;'
+            f'font-size:0.85rem;text-align:center;">'
+            f'De los <b>{int(_total_vis):,} visitantes/día</b> estimados, el '
+            f'<b style="color:#27ae60;">{_consumidores_pct}%</b> '
+            f'({int(_total_con):,} personas) son consumidores potenciales</div>',
+            unsafe_allow_html=True,
+        )
+
+    # Plan de implementación
+    _fase1 = min(PLAN_FASES.keys())
+    _fase4 = max(PLAN_FASES.keys())
+    _tot_ini = sum(PLAN_FASES[_fase1]["kioskos"].values())
+    _tot_fin = sum(PLAN_FASES[_fase4]["kioskos"].values())
+    st.markdown(f"""
+    <div style="background:white;border-radius:10px;padding:1rem 1.2rem;
+                box-shadow:0 2px 8px rgba(0,0,0,0.08);border-top:4px solid #2980b9;
+                margin-bottom:1rem;">
+        <div style="font-weight:700;color:#1a3a5c;margin-bottom:0.6rem;">Plan de implementación</div>
+        <div style="display:flex;gap:2rem;font-size:0.88rem;">
+            <span style="color:#666;">Arranque {_fase1}:
+                <b style="color:#27ae60;font-size:1.1rem;">&nbsp;{_tot_ini} kioskos</b></span>
+            <span style="color:#666;">Proyección {_fase4}:
+                <b style="color:#e67e22;font-size:1.1rem;">&nbsp;{_tot_fin} kioskos</b></span>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Fila 2: demanda vs plan (ancho completo)
+    st.plotly_chart(fig_demanda_vs_plan_parque(stats, enc), width="stretch")
+
+    # Fila 3: proyección de visitantes diarios (ancho completo)
+    st.plotly_chart(fig_trafico_parque_total(stats), width="stretch")
+
+    # Fila 4: ingresos diarios
+    _ing_col1, _ing_col2 = st.columns(2)
+    with _ing_col1:
+        st.plotly_chart(fig_ingresos_diarios_zona(stats, enc), width="stretch")
+    with _ing_col2:
+        st.plotly_chart(fig_ingresos_diarios_por_kiosko(stats, enc), width="stretch")
 
     st.markdown("---")
 
