@@ -191,14 +191,19 @@ def build_charts(enc, kpis, stats, fc):
         charts["trafico"] = None
 
     # ── 5. Demanda vs plan de kioskos ─────────────────────────────────────
+    # Metodología: se ancla en las visitas reales medidas en 2025 (vis_dia) y se
+    # proyecta con el factor de crecimiento poblacional del sector (mismo método
+    # que fig_ingresos_fases_zona en models/kiosko_model.py), NO con un % fijo
+    # arbitrario de la población total del sector.
     try:
         cons_pct = kpis["consumiria_pct"] / 100
         vis_dia  = round(kpis["total_visitas_parque_2025"] / 365)
         fases = sorted(PLAN_FASES.items())
         anios = [str(a) for a, _ in fases]
         kios  = [sum(p["kioskos"].values()) for _, p in fases]
-        pobs  = [p["poblacion_hab"] for _, p in fases]
-        demanda = [round(pop * 0.008 * cons_pct) for pop in pobs]
+        pob_base = fases[0][1]["poblacion_hab"]
+        factores = [p["poblacion_hab"] / pob_base for _, p in fases]
+        demanda  = [round(vis_dia * f * cons_pct) for f in factores]
 
         x = np.arange(len(anios))
         w = 0.38
@@ -230,11 +235,16 @@ def build_charts(enc, kpis, stats, fc):
         charts["demanda"] = None
 
     # ── 6. Visitantes vs consumidores por fase ────────────────────────────
+    # Misma metodología: vis_dia real 2025 proyectado con el factor de
+    # crecimiento poblacional del sector por fase.
     try:
+        cons_pct2 = kpis["consumiria_pct"] / 100
+        vis_dia2  = round(kpis["total_visitas_parque_2025"] / 365)
         fases = sorted(PLAN_FASES.items())
         anios = [str(a) for a, _ in fases]
-        vis   = [round(p["poblacion_hab"] * 0.008) for _, p in fases]
-        cons  = [round(v * kpis["consumiria_pct"] / 100) for v in vis]
+        pob_base2 = fases[0][1]["poblacion_hab"]
+        vis   = [round(vis_dia2 * (p["poblacion_hab"] / pob_base2)) for _, p in fases]
+        cons  = [round(v * cons_pct2) for v in vis]
         x = np.arange(len(anios))
         w = 0.38
         fig, ax = plt.subplots(figsize=(7, 4))
@@ -281,15 +291,20 @@ def build_charts(enc, kpis, stats, fc):
         charts["kioskos"] = None
 
     # ── 8. Ingresos por zona ──────────────────────────────────────────────
+    # Ancla en visitas reales 2025 + factor de crecimiento poblacional (misma
+    # metodología que fig_ingresos_fases_zona en models/kiosko_model.py).
     try:
         gasto = kpis["gasto_promedio_usd"]
+        cons_pct3 = kpis["consumiria_pct"] / 100
+        vis_dia3  = round(kpis["total_visitas_parque_2025"] / 365)
         fases = sorted(PLAN_FASES.items())
         anios = [str(a) for a, _ in fases]
+        pob_base3 = fases[0][1]["poblacion_hab"]
         ingresos_zona = []
         for a, p in fases:
-            kios_n = sum(p["kioskos"].values())
-            vis_d  = round(p["poblacion_hab"] * 0.008)
-            cons_d = round(vis_d * kpis["consumiria_pct"] / 100)
+            factor = p["poblacion_hab"] / pob_base3
+            vis_d  = round(vis_dia3 * factor)
+            cons_d = round(vis_d * cons_pct3)
             ing    = round(cons_d * gasto * 365 / 1000)
             ingresos_zona.append(ing)
         fig, ax = plt.subplots(figsize=(7, 4))
@@ -308,15 +323,20 @@ def build_charts(enc, kpis, stats, fc):
         charts["ing_zona"] = None
 
     # ── 9. Ingresos por kiosko ────────────────────────────────────────────
+    # Misma metodología real (visitas 2025 × factor de crecimiento poblacional).
     try:
         gasto = kpis["gasto_promedio_usd"]
+        cons_pct4 = kpis["consumiria_pct"] / 100
+        vis_dia4  = round(kpis["total_visitas_parque_2025"] / 365)
         fases = sorted(PLAN_FASES.items())
         anios = [str(a) for a, _ in fases]
+        pob_base4 = fases[0][1]["poblacion_hab"]
         ing_kio = []
         for a, p in fases:
             kios_n = sum(p["kioskos"].values())
-            vis_d  = round(p["poblacion_hab"] * 0.008)
-            cons_d = round(vis_d * kpis["consumiria_pct"] / 100)
+            factor = p["poblacion_hab"] / pob_base4
+            vis_d  = round(vis_dia4 * factor)
+            cons_d = round(vis_d * cons_pct4)
             ing    = round(cons_d * gasto * 365 / kios_n / 1000, 1) if kios_n else 0
             ing_kio.append(ing)
         fig, ax = plt.subplots(figsize=(7, 4))
