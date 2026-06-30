@@ -385,11 +385,35 @@ def build_charts(enc, kpis, stats, fc):
     return charts
 
 
+# ── helpers de firma ──────────────────────────────────────────────────────────
+
+def _firma_table(doc, roles):
+    """Tabla de firmas: lista de (rol, nombre) — nombre en blanco = línea."""
+    tbl = doc.add_table(rows=1, cols=len(roles))
+    tbl.style = "Table Grid"
+    row = tbl.rows[0]
+    for i, (rol, nombre) in enumerate(roles):
+        cell = row.cells[i]
+        # Línea de firma
+        p_line = cell.add_paragraph("_" * 28)
+        p_line.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        # Nombre/cargo
+        p_nom = cell.add_paragraph(nombre if nombre else " ")
+        p_nom.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_nom.runs[0].font.size = Pt(9)
+        # Rol
+        p_rol = cell.add_paragraph(rol)
+        p_rol.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_rol.runs[0].bold = True
+        p_rol.runs[0].font.size = Pt(9)
+    doc.add_paragraph()
+
+
 # ── generador principal ────────────────────────────────────────────────────────
 
 def generate_word_report(enc, kpis, stats, fc, charts=None):
     """
-    Genera el informe Word completo y devuelve bytes.
+    Genera el informe Word completo con estructura institucional EPMMOP.
 
     Parámetros
     ----------
@@ -397,10 +421,9 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
     kpis   : dict de KPIs (de get_kpi_summary)
     stats  : dict de estadísticas de visitas
     fc     : resultado de forecast_kioskos()
-    charts : dict nombre→bytes PNG (de build_charts). Si es None se intenta
-             generar internamente (puede fallar en contexto Streamlit).
+    charts : dict nombre→bytes PNG (de build_charts).
     """
-    from models.kiosko_model import PLAN_FASES, PROYECCION_PARAMS
+    from models.kiosko_model import PLAN_FASES, PROYECCION_PARAMS, GIROS, GIRO_ROTATION
 
     if charts is None:
         charts = build_charts(enc, kpis, stats, fc)
@@ -430,7 +453,7 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
     sec.bottom_margin = Cm(2.5)
 
     # ━━━ PORTADA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    for _ in range(5):
+    for _ in range(4):
         doc.add_paragraph()
 
     t = doc.add_heading("ESTUDIO DE MERCADO", 0)
@@ -442,6 +465,7 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
     for txt, sz, bold in [
         ("Empresa Pública Metropolitana de Movilidad y Obras Públicas", 12, True),
         ("EPMMOP — Promoción de Servicios", 11, False),
+        ("Gerencia de Desarrollo Urbano y Espacio Público", 10, False),
     ]:
         p = doc.add_paragraph(txt)
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -449,193 +473,280 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         p.runs[0].font.size = Pt(sz)
 
     doc.add_paragraph()
-    pf = doc.add_paragraph(f"Quito, {date.today().strftime('%B de %Y').capitalize()}")
-    pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    pf.runs[0].font.size = Pt(11)
-    doc.add_page_break()
-
-    # ━━━ RESUMEN EJECUTIVO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    _h(doc, "RESUMEN EJECUTIVO", 1)
-    _p(doc, (
-        f"El presente estudio evalúa la viabilidad de implementar kioskos comerciales en el "
-        f"Parque Bicentenario de Quito, con base en una encuesta a {n_enc} visitantes y el "
-        f"análisis de {vis_2025:,} registros de visita del año 2025. El {cons_pct}% de los "
-        f"encuestados consumiría productos o servicios dentro del parque ({cons_dia} personas/día). "
-        f"La zona de intervención propuesta es el Bulevar de las Canchas (160 m, hasta 50 kioskos), "
-        f"con un plan de implementación gradual de 10 kioskos en 2026 hasta 25 en 2036. "
-        f"El AIVA del sector Bicentenario se ubica en $267/m², con proyección hacia los "
-        f"$1,895/m² del sector La Carolina."
-    ))
-    doc.add_paragraph()
-    _h(doc, "Indicadores clave", 2)
     _kpi_table(doc, [
-        ("Visitas registradas 2025",           f"{vis_2025:,}"),
-        ("Visitantes diarios promedio",        f"{vis_dia:,}"),
-        ("Encuestados",                        f"{n_enc}"),
-        ("Consumidores potenciales por día",   f"{cons_dia} ({cons_pct}%)"),
-        ("Gasto promedio dispuesto",           f"${gasto}"),
-        ("Aprobación de kioskos",              f"{aprueba}%"),
-        ("Mejora percibida en experiencia",    f"{mejora}%"),
-        ("Calificación actual del parque",     f"{calif}/5"),
-        ("Edad promedio del visitante",        f"{edad} años"),
-        ("AIVA sector Bicentenario",           "$267/m²"),
-        ("AIVA referencia La Carolina",        "$1,895/m²"),
-        ("Kioskos propuestos inicio / meta",   "10 (2026) → 25 (2036)"),
+        ("Código del documento",  "EPMMOP-PS-EM-2026-001"),
+        ("Versión",               "1.0"),
+        ("Fecha de emisión",      date.today().strftime("%d/%m/%Y")),
+        ("Estado",                "Para revisión y aprobación"),
+        ("Clasificación",         "Uso interno — EPMMOP"),
     ])
     doc.add_page_break()
 
     # ━━━ 1. INTRODUCCIÓN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     _h(doc, "1. INTRODUCCIÓN", 1)
-    _h(doc, "1.1 Antecedentes", 2)
     _p(doc, (
-        "El Parque Bicentenario ocupa los terrenos del antiguo Aeropuerto Mariscal Sucre de Quito. "
-        "Con aproximadamente 50 hectáreas, es el parque urbano más grande de la ciudad y uno de "
-        "los más significativos de la región andina. Administrado por la EPMMOP, recibe más de "
-        f"{vis_2025:,} visitantes al año y es el principal espacio de esparcimiento, deporte y "
-        "cultura del norte de Quito."
+        "El presente documento constituye el Estudio de Mercado para la implementación de "
+        "kioskos comerciales en el Parque Bicentenario de Quito, desarrollado por la Gerencia "
+        "de Promoción de Servicios de la Empresa Pública Metropolitana de Movilidad y Obras "
+        "Públicas (EPMMOP)."
     ))
-    _h(doc, "1.2 Problemática", 2)
     _p(doc, (
-        "El parque carece de una oferta comercial estructurada. La ausencia de servicios de "
-        "alimentación y productos básicos genera una demanda insatisfecha identificada y "
-        "cuantificada en este estudio. Esta brecha representa una oportunidad para el municipio, "
-        "los operadores locales y los propietarios de inmuebles del sector."
+        "El estudio tiene como propósito determinar la viabilidad comercial y operativa de "
+        "instalar módulos de venta de productos y servicios en el Bulevar de las Canchas, "
+        "zona de mayor concentración peatonal del parque, con base en evidencia cuantitativa "
+        "obtenida directamente de los visitantes y en el análisis de los registros históricos "
+        "de afluencia del año 2025."
     ))
-    _h(doc, "1.3 Justificación", 2)
     _p(doc, (
-        "La implementación de kioskos modulares en el Bulevar de las Canchas permite una "
-        "intervención reversible, escalable y coherente con los lineamientos de uso del espacio "
-        "público del Municipio del Distrito Metropolitano de Quito, sustentada en evidencia "
-        "directa de demanda ciudadana."
+        f"El estudio se fundamenta en una encuesta aplicada a {n_enc} visitantes del parque "
+        f"y en el análisis de {vis_2025:,} registros de visita correspondientes al año 2025, "
+        "proporcionados por la EPMMOP. Los resultados sirven de base técnica para la toma de "
+        "decisiones sobre la implementación, el dimensionamiento y el modelo de gestión del "
+        "proyecto de kioskos comerciales."
     ))
     doc.add_page_break()
 
-    # ━━━ 2. OBJETIVOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    _h(doc, "2. OBJETIVOS", 1)
-    _h(doc, "2.1 Objetivo general", 2)
+    # ━━━ 2. ANTECEDENTES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    _h(doc, "2. ANTECEDENTES", 1)
     _p(doc, (
-        "Determinar la viabilidad comercial y operativa de implementar kioskos de venta de "
-        "productos y servicios en el Parque Bicentenario de Quito, a través del análisis de "
-        "la demanda, el perfil del visitante y las condiciones del entorno urbano."
+        "El Parque Bicentenario ocupa los terrenos del antiguo Aeropuerto Internacional "
+        "Mariscal Sucre de Quito, cuya operación fue trasladada al nuevo aeropuerto de Tababela "
+        "en febrero de 2013. Con aproximadamente 50 hectáreas de área verde, es el parque urbano "
+        "más extenso de la ciudad y uno de los más significativos de la región andina."
     ))
-    _h(doc, "2.2 Objetivos específicos", 2)
-    _bullet(doc, [
-        "Caracterizar el perfil sociodemográfico del visitante del Parque Bicentenario.",
-        "Cuantificar la demanda potencial de productos y servicios comerciales dentro del parque.",
-        "Identificar los productos y servicios con mayor aceptación entre los visitantes.",
-        "Establecer un modelo de negocio viable y escalable para la operación de kioskos.",
-        "Proyectar los ingresos esperados a 10 años bajo el plan de implementación por fases.",
-        "Evaluar el impacto en la valorización del suelo (AIVA) del sector Bicentenario.",
-    ])
+    _p(doc, (
+        "Administrado por la EPMMOP en virtud de la delegación otorgada por el Municipio del "
+        "Distrito Metropolitano de Quito (MDMQ), el parque se ha consolidado como el principal "
+        f"espacio de esparcimiento, deporte y cultura del norte de Quito, registrando "
+        f"{vis_2025:,} visitas durante el año 2025."
+    ))
+    _p(doc, (
+        "A pesar de su alta afluencia, el parque no cuenta con una oferta comercial formal que "
+        "permita a los visitantes adquirir productos de alimentación, hidratación u otros "
+        "servicios complementarios durante su permanencia. Esta situación genera una demanda "
+        "insatisfecha que ha sido cuantificada en el presente estudio, y representa una "
+        "oportunidad de desarrollo económico local alineada con los objetivos de la EPMMOP."
+    ))
+    _p(doc, (
+        "En el marco del Plan de Gestión del Parque Bicentenario y de los proyectos de "
+        "desarrollo urbano asociados —entre los que destaca la apertura de las estaciones de "
+        "Metro Bicentenario y Andalucía proyectada para 2029— se identificó la necesidad de "
+        "realizar un estudio técnico de mercado que sustente la decisión de implementar "
+        "kioskos comerciales en el Bulevar de las Canchas."
+    ))
     doc.add_page_break()
 
-    # ━━━ 3. METODOLOGÍA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    _h(doc, "3. METODOLOGÍA", 1)
+    # ━━━ 3. MARCO NORMATIVO O REFERENCIAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    _h(doc, "3. MARCO NORMATIVO O REFERENCIAL", 1)
     _p(doc, (
-        "El estudio combina métodos cuantitativos y cualitativos para obtener una visión "
-        "integral del mercado potencial, en dos etapas: encuesta de campo y análisis de "
-        "registros históricos de visita."
+        "La implementación de kioskos comerciales en el Parque Bicentenario se enmarca en el "
+        "siguiente conjunto de instrumentos legales y normativos vigentes:"
     ))
-    _h(doc, "3.1 Encuesta de campo", 2)
+    normas = [
+        ("Constitución de la República del Ecuador (2008)",
+         "Art. 264: Los gobiernos municipales tendrán entre sus competencias exclusivas la "
+         "prestación de servicios públicos y la regulación del uso del suelo urbano."),
+        ("Código Orgánico de Organización Territorial, Autonomía y Descentralización — COOTAD",
+         "Regula las competencias de los gobiernos autónomos descentralizados, incluyendo la "
+         "gestión y uso de espacios públicos urbanos."),
+        ("Código Orgánico del Ambiente (COA)",
+         "Establece los principios de sustentabilidad que deben observarse en intervenciones "
+         "en espacios verdes y áreas de uso público."),
+        ("Ordenanza Metropolitana N.° 0172 — Uso y Gestión del Suelo del DMQ",
+         "Regula los usos compatibles con las zonas de parques y equipamientos urbanos, "
+         "incluyendo actividades comerciales complementarias de baja intensidad."),
+        ("Plan de Uso y Gestión del Suelo (PUGS) del DMQ — 2022",
+         "Clasifica el Parque Bicentenario como área de equipamiento recreativo de escala "
+         "metropolitana, permitiendo usos complementarios como servicios de alimentación "
+         "y actividades comerciales en módulos móviles o semi-permanentes."),
+        ("Acuerdo de creación de la EPMMOP — Ordenanza Metropolitana N.° 0165",
+         "Define las competencias de la EPMMOP para la administración, gestión y "
+         "aprovechamiento del Parque Bicentenario."),
+        ("Norma Técnica de Espacio Público del DMQ",
+         "Establece los parámetros de diseño, accesibilidad y ocupación para elementos "
+         "instalados en espacios públicos, aplicables al dimensionamiento de kioskos."),
+    ]
+    tbl_n = doc.add_table(rows=len(normas) + 1, cols=2)
+    tbl_n.style = "Table Grid"
+    for j, h in enumerate(["Instrumento normativo", "Relevancia para el proyecto"]):
+        c = tbl_n.rows[0].cells[j]
+        c.text = h
+        c.paragraphs[0].runs[0].bold = True
+        c.paragraphs[0].runs[0].font.size = Pt(10)
+    for i, (norma, relevancia) in enumerate(normas, 1):
+        tbl_n.rows[i].cells[0].text = norma
+        tbl_n.rows[i].cells[1].text = relevancia
+        for j in range(2):
+            tbl_n.rows[i].cells[j].paragraphs[0].runs[0].font.size = Pt(9)
+    doc.add_page_break()
+
+    # ━━━ 4. DEFINICIONES Y ABREVIATURAS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    _h(doc, "4. DEFINICIONES Y ABREVIATURAS", 1)
+
+    _h(doc, "4.1 Definiciones", 2)
+    definiciones = [
+        ("Kiosko comercial",
+         "Módulo modular de venta de productos o servicios, de dimensiones reducidas "
+         "(2.5 m × 2.0 m), diseñado para instalación en espacios públicos con mínimo "
+         "impacto paisajístico. Puede ser fijo, semi-permanente o móvil."),
+        ("Bulevar de las Canchas",
+         "Corredor peatonal de 160 metros lineales que atraviesa longitudinalmente el "
+         "área de canchas deportivas del Parque Bicentenario, identificado como la zona "
+         "de mayor flujo peatonal y la más adecuada para la implantación de kioskos."),
+        ("Giro comercial",
+         "Categoría de productos o servicios que ofrece un kiosko. Ejemplos: Bebidas, "
+         "Comida rápida, Helados y café, Snacks saludables, Artículos para mascotas y "
+         "souvenirs, Deportivo."),
+        ("Rotación de giros",
+         "Sistema de asignación de categorías comerciales a cada kiosko que garantiza "
+         "diversidad de oferta y evita competencia directa entre módulos adyacentes."),
+        ("AIVA (Área de Intervención Valorativa)",
+         "Indicador del valor del suelo urbano expresado en dólares por metro cuadrado "
+         "(USD/m²). En el sector Bicentenario el AIVA actual es de $267/m², mientras que "
+         "en el sector de referencia La Carolina asciende a $1,895/m²."),
+        ("Demanda potencial",
+         "Número de visitantes que declararon que consumirían productos o servicios "
+         "comerciales dentro del parque si estos estuvieran disponibles."),
+        ("Visitante activo",
+         "Persona que ingresa al parque para realizar actividad física, deportiva o "
+         "recreativa, con mayor propensión al consumo de bebidas e hidratantes."),
+        ("Plan de implementación por fases",
+         "Estrategia gradual de despliegue de kioskos en el tiempo, condicionada a "
+         "hitos de desarrollo urbano del sector (apertura del Metro, densificación "
+         "de edificaciones, crecimiento poblacional)."),
+    ]
+    tbl_d = doc.add_table(rows=len(definiciones) + 1, cols=2)
+    tbl_d.style = "Table Grid"
+    for j, h in enumerate(["Término", "Definición"]):
+        c = tbl_d.rows[0].cells[j]
+        c.text = h
+        c.paragraphs[0].runs[0].bold = True
+        c.paragraphs[0].runs[0].font.size = Pt(10)
+    for i, (term, defi) in enumerate(definiciones, 1):
+        tbl_d.rows[i].cells[0].text = term
+        tbl_d.rows[i].cells[1].text = defi
+        tbl_d.rows[i].cells[0].paragraphs[0].runs[0].bold = True
+        tbl_d.rows[i].cells[0].paragraphs[0].runs[0].font.size = Pt(9)
+        tbl_d.rows[i].cells[1].paragraphs[0].runs[0].font.size = Pt(9)
+    doc.add_paragraph()
+
+    _h(doc, "4.2 Abreviaturas", 2)
+    abreviaturas = [
+        ("AIVA",    "Área de Intervención Valorativa"),
+        ("COA",     "Código Orgánico del Ambiente"),
+        ("COOTAD",  "Código Orgánico de Organización Territorial, Autonomía y Descentralización"),
+        ("DMQ",     "Distrito Metropolitano de Quito"),
+        ("EPMMOP",  "Empresa Pública Metropolitana de Movilidad y Obras Públicas"),
+        ("KPI",     "Key Performance Indicator — Indicador Clave de Rendimiento"),
+        ("MDMQ",    "Municipio del Distrito Metropolitano de Quito"),
+        ("PUGS",    "Plan de Uso y Gestión del Suelo"),
+        ("USD",     "Dólares de los Estados Unidos de América"),
+    ]
+    tbl_a = doc.add_table(rows=len(abreviaturas) + 1, cols=2)
+    tbl_a.style = "Table Grid"
+    for j, h in enumerate(["Abreviatura", "Significado"]):
+        c = tbl_a.rows[0].cells[j]
+        c.text = h
+        c.paragraphs[0].runs[0].bold = True
+        c.paragraphs[0].runs[0].font.size = Pt(10)
+    for i, (abr, sig) in enumerate(abreviaturas, 1):
+        tbl_a.rows[i].cells[0].text = abr
+        tbl_a.rows[i].cells[1].text = sig
+        tbl_a.rows[i].cells[0].paragraphs[0].runs[0].bold = True
+        tbl_a.rows[i].cells[0].paragraphs[0].runs[0].font.size = Pt(9)
+        tbl_a.rows[i].cells[1].paragraphs[0].runs[0].font.size = Pt(9)
+    doc.add_page_break()
+
+    # ━━━ 5. DESARROLLO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    _h(doc, "5. DESARROLLO", 1)
+
+    # 5.1 Metodología
+    _h(doc, "5.1 Metodología", 2)
     _p(doc, (
-        f"Se aplicaron {n_enc} encuestas estructuradas a visitantes del Parque Bicentenario "
-        "mediante muestreo aleatorio sistemático, con 17 variables que cubren perfil "
-        "sociodemográfico, patrones de visita, preferencias de consumo y percepción de servicios."
+        "El estudio combina métodos cuantitativos y cualitativos en dos etapas: "
+        "(a) encuesta directa a visitantes del parque y (b) análisis estadístico de "
+        "los registros históricos de visita proporcionados por la EPMMOP."
     ))
     _kpi_table(doc, [
-        ("Tamaño de muestra",     f"{n_enc} encuestados"),
-        ("Herramienta",           "Google Forms"),
-        ("Tipo de muestreo",      "Aleatorio sistemático"),
-        ("Variables analizadas",  "17 preguntas"),
-        ("Análisis estadístico",  "Python — pandas, scipy, plotly"),
+        ("Tamaño de muestra",        f"{n_enc} encuestados"),
+        ("Herramienta de recolección","Google Forms"),
+        ("Tipo de muestreo",         "Aleatorio sistemático"),
+        ("Variables analizadas",     "17 preguntas"),
+        ("Registros de visita",      f"{vis_2025:,} (año 2025)"),
+        ("Herramienta de análisis",  "Python — pandas, scipy, matplotlib"),
     ])
-    _h(doc, "3.2 Análisis de registros de visita", 2)
-    _p(doc, (
-        f"Se analizaron {vis_2025:,} registros de visita al Parque Bicentenario del año 2025, "
-        "proporcionados por la EPMMOP, para identificar patrones de afluencia, tendencias "
-        "estacionales y la demanda diaria promedio."
-    ))
-    doc.add_page_break()
 
-    # ━━━ 4. PERFIL SOCIODEMOGRÁFICO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    _h(doc, "4. PERFIL SOCIODEMOGRÁFICO DEL VISITANTE", 1)
+    # 5.2 Perfil sociodemográfico
+    _h(doc, "5.2 Perfil sociodemográfico del visitante", 2)
     _p(doc, (
-        f"El visitante típico es residente del norte de Quito (78.2%), con edad promedio de "
-        f"{edad} años. El domingo es el día de mayor afluencia (67.5%), con pico en el horario "
-        "de 09:00–12:00 h en fines de semana y 04:00–09:00 h en días laborables. "
-        "El grupo de visita predominante es la familia (45.6%) y el motivo principal es la recreación."
+        f"El visitante típico del Parque Bicentenario es residente del norte de Quito (78.2%), "
+        f"con una edad promedio de {edad} años. El domingo es el día de mayor afluencia (67.5%), "
+        "con horario pico de 09:00 a 12:00 h en fines de semana y de 04:00 a 09:00 h en días "
+        "laborables. El grupo de visita predominante es la familia (45.6%) y el motivo "
+        "principal es la recreación (29.1%)."
     ))
     _kpi_table(doc, [
-        ("Visitantes totales 2025",             f"{vis_2025:,}"),
-        ("Visitantes diarios promedio",         f"{vis_dia:,}"),
-        ("Edad promedio",                       f"{edad} años"),
-        ("Día más visitado",                    "Domingo (67.5%)"),
-        ("Sector de residencia mayoritario",    "Norte de Quito (78.2%)"),
-        ("Grupo de visita predominante",        "Familia (45.6%)"),
-        ("Motivo de visita principal",          "Recreación (29.1%)"),
-        ("Servicio complementario más pedido",  "Baños (76.2%)"),
+        ("Visitantes totales 2025",            f"{vis_2025:,}"),
+        ("Visitantes diarios promedio",        f"{vis_dia:,}"),
+        ("Edad promedio",                      f"{edad} años"),
+        ("Día de mayor afluencia",             "Domingo (67.5%)"),
+        ("Sector de residencia predominante",  "Norte de Quito (78.2%)"),
+        ("Grupo de visita predominante",       "Familia (45.6%)"),
+        ("Motivo de visita principal",         "Recreación (29.1%)"),
+        ("Servicio complementario prioritario","Baños públicos (76.2%)"),
     ])
-
     _insert_img(doc, charts.get("genero"),
                 "Gráfico 1. Distribución por género de los visitantes encuestados", 4.5)
     _insert_img(doc, charts.get("edad"),
-                "Gráfico 2. Distribución de visitantes por grupos de edad", 5.0)
+                "Gráfico 2. Distribución por grupos de edad", 5.0)
     _insert_img(doc, charts.get("motivo"),
                 "Gráfico 3. Motivo principal de visita al Parque Bicentenario", 4.5)
-    doc.add_page_break()
 
-    # ━━━ 5. ANÁLISIS DE DEMANDA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    _h(doc, "5. ANÁLISIS DE DEMANDA", 1)
-
-    _h(doc, "5.1 Afluencia al parque", 2)
+    # 5.3 Análisis de la demanda
+    _h(doc, "5.3 Análisis de la demanda", 2)
     _p(doc, (
-        f"El Parque Bicentenario registró {vis_2025:,} visitas durante 2025, con promedio de "
-        f"{vis_dia:,} visitantes/día. La mayor afluencia se concentra los domingos. La tendencia "
-        "muestra estacionalidad marcada en julio–agosto (vacaciones escolares) y en el primer "
-        "trimestre del año."
+        f"El Parque Bicentenario registró {vis_2025:,} visitas durante 2025, equivalentes a un "
+        f"promedio de {vis_dia:,} visitantes diarios. La tendencia mensual muestra estacionalidad "
+        "en julio–agosto (vacaciones escolares) y en el primer trimestre del año."
     ))
     _insert_img(doc, charts.get("trafico"),
-                "Gráfico 4. Tráfico de visitantes al Parque Bicentenario — 2025", 6.0)
+                "Gráfico 4. Tráfico mensual de visitantes al Parque Bicentenario — 2025", 6.0)
 
-    _h(doc, "5.2 Demanda potencial de servicios comerciales", 2)
     _p(doc, (
-        f"El {cons_pct}% de los encuestados ({cons_dia} personas/día) afirmó que consumiría "
-        f"productos o servicios si estuvieran disponibles. El gasto promedio dispuesto es "
-        f"${gasto} por visita. El {aprueba}% aprueba la implementación de kioskos y el "
-        f"{mejora}% considera que mejoraría su experiencia."
+        f"Del total de visitantes, el {cons_pct}% ({cons_dia} personas/día) declaró que "
+        f"consumiría productos o servicios si estuvieran disponibles dentro del parque. "
+        f"El gasto promedio dispuesto es de ${gasto} por visita. El {aprueba}% aprueba la "
+        f"implementación de kioskos y el {mejora}% considera que mejoraría su experiencia."
     ))
     _insert_img(doc, charts.get("demanda"),
-                "Gráfico 5. Demanda potencial de consumidores vs. plan de kioskos", 6.0)
+                "Gráfico 5. Demanda potencial de consumidores vs. capacidad del plan de kioskos", 6.0)
 
-    _h(doc, "5.3 Productos y servicios más demandados", 2)
     _p(doc, (
-        "Los snacks y bebidas encabezan la preferencia (38.0%), seguidos de bebidas calientes, "
-        "comida rápida y helados. Entre los servicios complementarios, los baños son la "
-        "prioridad más urgente (76.2%), seguida de iluminación y zonas de descanso."
+        "Los productos y servicios más demandados son snacks y bebidas (38.0%), bebidas "
+        "calientes, comida rápida y helados. El análisis de comentarios de los visitantes "
+        "confirma estas preferencias e identifica temas prioritarios de mejora:"
     ))
     _insert_img(doc, charts.get("topics"),
                 "Gráfico 6. Temas más solicitados por los visitantes (análisis de comentarios)", 6.0)
-    doc.add_page_break()
 
-    # ━━━ 6. MODELO COMERCIAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    _h(doc, "6. MODELO COMERCIAL", 1)
-
-    _h(doc, "6.1 Zona de intervención", 2)
+    # 5.4 Propuesta de modelo comercial
+    _h(doc, "5.4 Propuesta de modelo comercial", 2)
     _p(doc, (
-        "La zona seleccionada es el Bulevar de las Canchas (Zona 1), corredor peatonal de "
-        "160 m que atraviesa el área de canchas deportivas. Esta ubicación maximiza la exposición "
-        "a visitantes activos y aprovecha el flujo natural de tránsito peatonal."
+        "La zona de intervención seleccionada es el Bulevar de las Canchas (Zona 1), "
+        "corredor peatonal de 160 m de longitud que atraviesa el área de canchas deportivas "
+        "del parque. La elección de esta zona obedece a su alta concentración de flujo "
+        "peatonal, su conexión directa con los accesos norte y sur, y su compatibilidad "
+        "con el uso recreativo y deportivo del sector."
     ))
     _kpi_table(doc, [
-        ("Zona",                  "Zona 1 – Bulevar de las Canchas"),
-        ("Longitud total",        "160 m lineales"),
-        ("Número de secciones",   "4"),
+        ("Zona de intervención",  "Zona 1 – Bulevar de las Canchas"),
+        ("Longitud total",        "160 m lineales — 4 secciones"),
         ("Capacidad máxima",      "50 kioskos"),
         ("Dimensión por kiosko",  "2.5 m × 2.0 m"),
         ("Ancho del pasillo",     "6.0 m"),
+        ("Tipo de módulo",        "Semi-permanente / desmontable"),
     ])
 
-    # Imágenes del parque
     zona_img = "src/img/render_bicentenario_bulevar.png"
     if os.path.exists(zona_img):
         doc.add_picture(zona_img, width=Inches(6.0))
@@ -654,18 +765,8 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         cap2.runs[0].italic = True
         doc.add_paragraph()
 
-    _h(doc, "6.2 Giros comerciales propuestos", 2)
-    _p(doc, (
-        "Los giros se asignan por rotación garantizando diversidad de oferta y evitando "
-        "competencia directa entre módulos adyacentes. La Fase 1 arranca con 10 kioskos "
-        "distribuidos en 6 giros distintos:"
-    ))
-
-    from models.kiosko_model import GIROS, GIRO_ROTATION
-    giro_rows = [
-        (g, GIROS[g]["descripcion"])
-        for g in GIROS
-    ]
+    _p(doc, "Giros comerciales propuestos y distribución por rotación:", bold=True)
+    giro_rows = [(g, GIROS[g]["descripcion"]) for g in GIROS]
     tbl_g = doc.add_table(rows=len(giro_rows) + 1, cols=2)
     tbl_g.style = "Table Grid"
     for j, h in enumerate(["Giro comercial", "Productos / servicios"]):
@@ -680,7 +781,7 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
             tbl_g.rows[i].cells[j].paragraphs[0].runs[0].font.size = Pt(10)
     doc.add_paragraph()
 
-    _p(doc, "Distribución de kioskos por rotación — Fase 1 (10 kioskos):", bold=True)
+    _p(doc, "Rotación de giros — Fase 1 (10 kioskos):", bold=True)
     rotation = GIRO_ROTATION["comercial_alta_densidad"]
     tbl_r = doc.add_table(rows=2, cols=10)
     tbl_r.style = "Table Grid"
@@ -693,23 +794,18 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
     doc.add_paragraph()
 
     _insert_img(doc, charts.get("layout"),
-                "Figura 3. Distribución comercial propuesta — Bulevar de las Canchas (Fase 1, 10 kioskos)", 6.0)
+                "Figura 3. Distribución comercial propuesta — Bulevar de las Canchas, Fase 1", 6.0)
 
-    _h(doc, "6.3 Plan de implementación por fases", 2)
-    _p(doc, (
-        "El proyecto se despliega en 4 fases a 10 años, condicionado a hitos de desarrollo "
-        "urbano (metro, densificación). Cada fase incrementa la oferta según el crecimiento "
-        "de la demanda."
-    ))
+    # Plan de fases
+    _p(doc, "Plan de implementación por fases:", bold=True)
     fase_rows = []
     for anio, params in sorted(PLAN_FASES.items()):
         total_kio = sum(params["kioskos"].values())
         fase_rows.append((params["fase"], str(anio), params["hito"],
                           str(total_kio), f"{params['poblacion_hab']:,} hab."))
-
     tbl_f = doc.add_table(rows=len(fase_rows) + 1, cols=5)
     tbl_f.style = "Table Grid"
-    for j, h in enumerate(["Fase", "Año", "Hito", "Kioskos", "Población"]):
+    for j, h in enumerate(["Fase", "Año", "Hito clave", "Kioskos", "Población sector"]):
         c = tbl_f.rows[0].cells[j]
         c.text = h
         c.paragraphs[0].runs[0].bold = True
@@ -719,73 +815,124 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
             tbl_f.rows[i].cells[j].text = val
             tbl_f.rows[i].cells[j].paragraphs[0].runs[0].font.size = Pt(9)
     doc.add_paragraph()
-
     _insert_img(doc, charts.get("kioskos"),
-                "Gráfico 7. Proyección de kioskos 2026–2036", 6.0)
-    doc.add_page_break()
+                "Gráfico 7. Proyección de kioskos por fase — 2026 a 2036", 6.0)
 
-    # ━━━ 7. PROYECCIÓN FINANCIERA ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    _h(doc, "7. PROYECCIÓN FINANCIERA", 1)
+    # 5.5 Proyección financiera
+    _h(doc, "5.5 Proyección financiera y viabilidad", 2)
     _p(doc, (
-        f"La proyección financiera se basa en el crecimiento esperado de la población del sector "
-        f"(de {pob_2026:,} en 2026 a {pob_2036:,} en 2036), el aumento progresivo de visitantes "
-        "y el incremento gradual de kioskos activos, con escenarios conservadores de ocupación."
+        f"La proyección se basa en el crecimiento esperado de la población del sector "
+        f"({pob_2026:,} hab. en 2026 → {pob_2036:,} hab. en 2036), el aumento progresivo "
+        "de visitantes por la apertura del Metro (2029) y el incremento gradual de kioskos "
+        "activos. Los modelos de ingreso utilizan el ticket promedio declarado por los "
+        "encuestados (${gasto}) bajo escenarios conservadores de ocupación.".format(gasto=gasto)
     ))
-
-    _h(doc, "7.1 Proyección de visitantes y demanda", 2)
     _insert_img(doc, charts.get("visitantes_vs"),
-                "Gráfico 8. Visitantes del parque vs. consumidores potenciales por fase", 6.0)
-
-    _h(doc, "7.2 Ingresos proyectados", 2)
-    _p(doc, (
-        "Se presentan dos perspectivas: ingresos consolidados por zona e ingresos por kiosko "
-        "individual, para evaluar la rentabilidad del proyecto global y de cada operador."
-    ))
+                "Gráfico 8. Proyección de visitantes vs. consumidores potenciales por fase", 6.0)
     _insert_img(doc, charts.get("ing_zona"),
-                "Gráfico 9. Proyección de ingresos totales de la zona 2026–2036", 6.0)
+                "Gráfico 9. Proyección de ingresos totales de la zona 2026–2036 (miles USD/año)", 6.0)
     _insert_img(doc, charts.get("ing_kio"),
-                "Gráfico 10. Proyección de ingresos promedio por kiosko 2026–2036", 6.0)
+                "Gráfico 10. Proyección de ingresos promedio por kiosko 2026–2036 (miles USD/año)", 6.0)
 
-    _h(doc, "7.3 Impacto en valorización del suelo (AIVA)", 2)
-    _p(doc, (
-        "El AIVA del sector Bicentenario se ubica en $267/m², frente a los $1,895/m² de La "
-        "Carolina. La consolidación del parque como polo comercial proyecta un crecimiento "
-        "sostenido del AIVA, beneficiando directamente a propietarios de inmuebles del sector."
-    ))
+    _p(doc, "Impacto en valorización del suelo (AIVA):", bold=True)
     _kpi_table(doc, [
-        ("AIVA actual Bicentenario",    "$267/m²"),
-        ("AIVA referencia La Carolina", "$1,895/m²"),
-        ("Potencial de crecimiento",    "~7x respecto al valor actual"),
+        ("AIVA actual sector Bicentenario",  "$267/m²"),
+        ("AIVA referencia sector La Carolina","$1,895/m²"),
+        ("Potencial de crecimiento",         "~7x respecto al valor actual"),
+        ("Beneficio para propietarios",      "Incremento de valor de venta y arrendamiento "
+                                             "de inmuebles conforme el proyecto avanza"),
     ])
     doc.add_page_break()
 
-    # ━━━ 8. CONCLUSIONES Y RECOMENDACIONES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    _h(doc, "8. CONCLUSIONES Y RECOMENDACIONES", 1)
-    _h(doc, "8.1 Conclusiones", 2)
-    _bullet(doc, [
-        f"Existe demanda potencial verificada: el {cons_pct}% de visitantes ({cons_dia}/día) consumiría en el parque.",
-        f"El parque recibe {vis_2025:,} visitas al año ({vis_dia:,}/día), con pico los domingos.",
-        "Snacks, bebidas y comida rápida encabezan la preferencia; baños son el servicio más urgente (76.2%).",
-        "El modelo de kioskos por fases (10 → 25, 2026–2036) es técnicamente viable y alineado al crecimiento urbano.",
-        f"La ciudadanía tiene actitud favorable: {aprueba}% aprueba los kioskos, {mejora}% cree que mejorarían su experiencia.",
-        "El AIVA del sector ($267/m²) tiene alto potencial de valorización hacia los niveles de La Carolina ($1,895/m²).",
-        "La apertura del Metro (2029) transformará el corredor en eje de movilidad urbana y multiplicará la afluencia.",
-    ])
-    _h(doc, "8.2 Recomendaciones", 2)
-    _bullet(doc, [
-        "Iniciar la Fase 1 en 2026 con 10 kioskos diversificados para validar el modelo antes de escalar.",
-        "Priorizar instalación de baños públicos como servicio complementario inmediato (76.2% de demanda).",
-        "Establecer contratos de concesión con revisión anual para ajustar giros y tarifas según demanda real.",
-        "Implementar monitoreo de ventas para optimizar el mix comercial con datos en tiempo real.",
-        "Comunicar el impacto en el AIVA del sector a propietarios e inversores para generar alianzas ciudadanas.",
-        "Evaluar extensión del modelo a otras zonas del parque en la Fase 4 (2036) si resultados superan proyecciones.",
+    # ━━━ 6. CONCLUSIONES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    _h(doc, "6. CONCLUSIONES", 1)
+    _numbered(doc, [
+        f"Existe demanda potencial verificada: el {cons_pct}% de los visitantes ({cons_dia} "
+        f"personas/día) consumiría productos o servicios si estuvieran disponibles en el parque.",
+        f"El parque recibe {vis_2025:,} visitas anuales ({vis_dia:,}/día promedio), con mayor "
+        f"concentración los domingos. La apertura del Metro (2029) incrementará significativamente "
+        "esta afluencia.",
+        "Los snacks, bebidas y comida rápida son los productos más demandados (38.0%); "
+        "los baños públicos son la prioridad de servicio complementario más urgente (76.2%).",
+        f"El modelo de kioskos por fases (10 → 25 unidades, 2026–2036) es técnicamente viable, "
+        "escalable y coherente con el crecimiento urbano proyectado para el sector.",
+        f"La ciudadanía tiene una actitud favorable hacia el proyecto: {aprueba}% aprueba los "
+        f"kioskos y {mejora}% considera que mejorarían su experiencia en el parque.",
+        "El AIVA del sector Bicentenario ($267/m²) presenta un alto potencial de valorización "
+        "hacia los niveles del sector La Carolina ($1,895/m²), generando un beneficio colateral "
+        "para los propietarios de inmuebles del área de influencia.",
+        "El Bulevar de las Canchas, con 160 m lineales y capacidad para hasta 50 módulos, "
+        "es la zona técnicamente idónea para iniciar la implementación del proyecto.",
     ])
     doc.add_page_break()
 
-    # ━━━ ANEXOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    _h(doc, "ANEXOS", 1)
-    _h(doc, "Anexo A — Instrumento de encuesta", 2)
-    _p(doc, f"Variables del formulario aplicado ({n_enc} respuestas):")
+    # ━━━ 7. RECOMENDACIONES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    _h(doc, "7. RECOMENDACIONES", 1)
+    _numbered(doc, [
+        "Iniciar la Fase 1 del proyecto en 2026 con 10 kioskos de giros diversificados "
+        "(Bebidas, Comida rápida, Helados y café, Snacks saludables, Mascotas/souvenirs y "
+        "Deportivo), para validar el modelo comercial antes de escalar.",
+        "Priorizar la instalación de baños públicos como servicio complementario urgente, "
+        "en respuesta al 76.2% de visitantes que los identifica como necesidad principal.",
+        "Establecer contratos de concesión con cláusulas de revisión anual, que permitan "
+        "ajustar los giros comerciales y las tarifas en función de la demanda real observada.",
+        "Implementar un sistema de monitoreo de ventas y flujo de visitantes que permita "
+        "tomar decisiones de escalamiento basadas en datos en tiempo real.",
+        "Estructurar una campaña de comunicación hacia propietarios e inversores del sector "
+        "sobre el impacto positivo del proyecto en el AIVA, para generar alianzas ciudadanas.",
+        "Programar la transición a la Fase 2 (16 kioskos) en coordinación con la apertura "
+        "de las estaciones de Metro Bicentenario y Andalucía (2029).",
+        "Evaluar la extensión del modelo a otras zonas del parque en la Fase 4 (2036) "
+        "si los resultados de las fases previas superan las proyecciones conservadoras.",
+    ])
+    doc.add_page_break()
+
+    # ━━━ 8. FIRMAS DE RESPONSABILIDAD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    _h(doc, "8. FIRMAS DE RESPONSABILIDAD", 1)
+    _p(doc, (
+        "El presente estudio de mercado fue elaborado, revisado y aprobado por los "
+        "funcionarios de la EPMMOP que a continuación suscriben, quienes certifican la "
+        "veracidad y rigurosidad técnica de la información contenida en este documento."
+    ))
+    doc.add_paragraph()
+
+    _firma_table(doc, [
+        ("Elaborado por", ""),
+        ("Revisado por",  ""),
+        ("Aprobado por",  ""),
+    ])
+
+    doc.add_paragraph()
+    _kpi_table(doc, [
+        ("Elaborado por",  "Gerencia de Promoción de Servicios — EPMMOP"),
+        ("Revisado por",   "Gerencia de Desarrollo Urbano — EPMMOP"),
+        ("Aprobado por",   "Gerencia General — EPMMOP"),
+        ("Fecha",          date.today().strftime("%d de %B de %Y").capitalize()),
+        ("N.° de documento","EPMMOP-PS-EM-2026-001"),
+    ])
+    doc.add_page_break()
+
+    # ━━━ 9. ANEXOS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    _h(doc, "9. ANEXOS", 1)
+
+    _h(doc, "Anexo A — Indicadores clave del estudio (KPIs)", 2)
+    _kpi_table(doc, [
+        ("Visitas registradas 2025",           f"{vis_2025:,}"),
+        ("Visitantes diarios promedio",        f"{vis_dia:,}"),
+        ("Encuestados",                        f"{n_enc}"),
+        ("Consumidores potenciales por día",   f"{cons_dia} ({cons_pct}%)"),
+        ("Gasto promedio dispuesto",           f"${gasto}"),
+        ("Aprobación de kioskos",              f"{aprueba}%"),
+        ("Mejora percibida en experiencia",    f"{mejora}%"),
+        ("Calificación actual del parque",     f"{calif}/5"),
+        ("Edad promedio del visitante",        f"{edad} años"),
+        ("AIVA sector Bicentenario",           "$267/m²"),
+        ("AIVA referencia La Carolina",        "$1,895/m²"),
+        ("Kioskos inicio / meta",              "10 (2026) → 25 (2036)"),
+    ])
+
+    _h(doc, "Anexo B — Instrumento de encuesta", 2)
+    _p(doc, f"Variables del formulario aplicado a {n_enc} visitantes del Parque Bicentenario:")
     _numbered(doc, [
         "Edad",
         "Género",
@@ -797,18 +944,22 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         "¿Cuál es el principal motivo de su visita?",
         "¿Consumiría productos o servicios dentro del parque?",
         "¿Qué productos o servicios consumiría dentro del parque?",
-        "¿Cuánto estaría dispuesto a gastar?",
-        "¿Considera adecuada la implementación de kioskos comerciales?",
+        "¿Cuánto estaría dispuesto a gastar en la compra de estos productos?",
+        "¿Considera adecuada la implementación de kioskos comerciales dentro del parque?",
         "¿En qué zonas accedería con mayor facilidad para adquirir productos?",
-        "¿Considera que los kioskos mejorarían su experiencia?",
+        "¿Considera que los kioskos mejorarían su experiencia en el parque?",
         "¿Cómo califica actualmente la oferta de servicios dentro del parque?",
         "¿Qué servicios complementarios considera prioritarios?",
         "Comentarios y sugerencias",
     ])
-    _h(doc, "Anexo B — Descripción de fases del plan", 2)
+
+    _h(doc, "Anexo C — Descripción detallada del plan de implementación por fases", 2)
     for anio, params in sorted(PLAN_FASES.items()):
-        _p(doc, params["fase"], bold=True, size=10)
+        _p(doc, f"{params['fase']} — {anio}", bold=True, size=10)
+        _p(doc, f"Hito: {params['hito']}", size=10)
         _p(doc, params["contexto"], size=10)
+        _p(doc, f"Kioskos: {sum(params['kioskos'].values())} | "
+                f"Población sector: {params['poblacion_hab']:,} hab.", size=10)
         doc.add_paragraph()
 
     # ── guardar ───────────────────────────────────────────────────────────────
