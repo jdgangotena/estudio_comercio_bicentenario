@@ -81,7 +81,7 @@ def build_charts(enc, kpis, stats, fc):
     import matplotlib.pyplot as plt
     import matplotlib.ticker as mticker
     import numpy as np
-    from models.kiosko_model import PLAN_FASES, COMMERCIAL_PARAMS
+    from models.kiosko_model import PLAN_FASES, COMMERCIAL_PARAMS, ZONAS
 
     BLUE   = "#1a3a5c"
     ORANGE = "#e67e22"
@@ -253,65 +253,65 @@ def build_charts(enc, kpis, stats, fc):
     except Exception:
         charts["kioskos"] = None
 
-    # ── 8. Ingresos por zona ──────────────────────────────────────────────
-    # Ancla en visitas reales 2025 + factor de crecimiento poblacional (misma
-    # metodología que fig_ingresos_fases_zona en models/kiosko_model.py).
+    # ── 8. Ingresos diarios por zona ─────────────────────────────────────
+    # USD/día por fase — misma unidad y metodología que fig_ingresos_fases_zona
+    # en la página (vis_dia × factor_poblacional × tasa_consumo × gasto).
     try:
-        gasto = kpis["gasto_promedio_usd"]
-        cons_pct3 = kpis["consumiria_pct"] / 100
-        vis_dia3  = round(kpis["total_visitas_parque_2025"] / 365)
-        fases = sorted(PLAN_FASES.items())
-        anios = [str(a) for a, _ in fases]
+        gasto    = kpis["gasto_promedio_usd"]
+        tasa     = kpis["consumiria_pct"] / 100
+        vis_dia3 = round(kpis["total_visitas_parque_2025"] / 365)
+        fases    = sorted(PLAN_FASES.items())
+        anios    = [str(a) for a, _ in fases]
         pob_base3 = fases[0][1]["poblacion_hab"]
         ingresos_zona = []
         for a, p in fases:
             factor = p["poblacion_hab"] / pob_base3
-            vis_d  = round(vis_dia3 * factor)
-            cons_d = round(vis_d * cons_pct3)
-            ing    = round(cons_d * gasto * 365 / 1000)
-            ingresos_zona.append(ing)
+            ingresos_zona.append(round(vis_dia3 * factor * tasa * gasto))
         fig, ax = plt.subplots(figsize=(7, 4))
-        bars = ax.bar(anios, ingresos_zona, color=ORANGE, alpha=0.85, width=0.5)
+        bars = ax.bar(anios, ingresos_zona, color=BLUE, alpha=0.85, width=0.5)
         for bar, val in zip(bars, ingresos_zona):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(ingresos_zona)*0.01,
-                    f"${val:,}k", ha="center", va="bottom", fontsize=9, fontweight="bold")
-        ax.set_ylabel("Ingresos potenciales (miles USD/año)", fontsize=9)
-        ax.set_title("Proyección de ingresos totales de la zona — 2026–2036",
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(ingresos_zona)*0.015,
+                    f"${val:,}", ha="center", va="bottom", fontsize=9, fontweight="bold")
+        ax.set_ylabel("USD / día", fontsize=9)
+        ax.set_xlabel("Fase / Año", fontsize=9)
+        ax.set_title("Crecimiento de ingresos diarios de la zona (2026–2036)",
                      fontsize=11, fontweight="bold", color=BLUE)
         ax.spines[["top","right"]].set_visible(False)
-        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${int(x):,}k"))
+        ax.set_ylim(0, max(ingresos_zona) * 1.22)
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${int(x):,}"))
         fig.tight_layout()
         charts["ing_zona"] = _save(fig)
     except Exception:
         charts["ing_zona"] = None
 
-    # ── 9. Ingresos por kiosko ────────────────────────────────────────────
-    # Misma metodología real (visitas 2025 × factor de crecimiento poblacional).
+    # ── 9. Ingreso diario por kiosko ──────────────────────────────────────
+    # USD/kiosko/día por fase — misma unidad que fig_ingresos_fases_por_kiosko.
     try:
-        gasto = kpis["gasto_promedio_usd"]
-        cons_pct4 = kpis["consumiria_pct"] / 100
-        vis_dia4  = round(kpis["total_visitas_parque_2025"] / 365)
-        fases = sorted(PLAN_FASES.items())
-        anios = [str(a) for a, _ in fases]
+        gasto    = kpis["gasto_promedio_usd"]
+        tasa     = kpis["consumiria_pct"] / 100
+        vis_dia4 = round(kpis["total_visitas_parque_2025"] / 365)
+        fases    = sorted(PLAN_FASES.items())
+        anios    = [str(a) for a, _ in fases]
         pob_base4 = fases[0][1]["poblacion_hab"]
-        ing_kio = []
+        zona_key  = list(ZONAS.keys())[0]
+        ing_kio   = []
         for a, p in fases:
-            kios_n = sum(p["kioskos"].values())
-            factor = p["poblacion_hab"] / pob_base4
-            vis_d  = round(vis_dia4 * factor)
-            cons_d = round(vis_d * cons_pct4)
-            ing    = round(cons_d * gasto * 365 / kios_n / 1000, 1) if kios_n else 0
-            ing_kio.append(ing)
+            factor   = p["poblacion_hab"] / pob_base4
+            ing_zona = vis_dia4 * factor * tasa * gasto
+            n_k      = max(1, p["kioskos"].get(zona_key, 1))
+            ing_kio.append(round(ing_zona / n_k))
         fig, ax = plt.subplots(figsize=(7, 4))
-        bars = ax.bar(anios, ing_kio, color=GREEN, alpha=0.85, width=0.5)
+        bars = ax.bar(anios, ing_kio, color=BLUE, alpha=0.85, width=0.5)
         for bar, val in zip(bars, ing_kio):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(ing_kio)*0.01,
-                    f"${val:,}k", ha="center", va="bottom", fontsize=9, fontweight="bold")
-        ax.set_ylabel("Ingresos por kiosko (miles USD/año)", fontsize=9)
-        ax.set_title("Proyección de ingresos promedio por kiosko — 2026–2036",
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(ing_kio)*0.015,
+                    f"${val:,}", ha="center", va="bottom", fontsize=9, fontweight="bold")
+        ax.set_ylabel("USD / kiosko / día", fontsize=9)
+        ax.set_xlabel("Fase / Año", fontsize=9)
+        ax.set_title("Ingreso diario por kiosko — evolución por fase (2026–2036)",
                      fontsize=11, fontweight="bold", color=BLUE)
         ax.spines[["top","right"]].set_visible(False)
-        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${int(x):,}k"))
+        ax.set_ylim(0, max(ing_kio) * 1.22)
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${int(x):,}"))
         fig.tight_layout()
         charts["ing_kio"] = _save(fig)
     except Exception:
@@ -888,18 +888,19 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         f"La proyección se basa en el crecimiento esperado de la población del sector "
         f"({pob_2026:,} hab. en 2026 → {pob_2036:,} hab. en 2036), el aumento progresivo "
         "de visitantes por la apertura del Metro (2029) y el incremento gradual de kioskos "
-        "activos. Los modelos de ingreso utilizan el ticket promedio declarado por los "
-        "encuestados (${gasto}) bajo escenarios conservadores de ocupación. "
+        "activos. Los gráficos 9 y 10 muestran el ingreso diario de la zona y por kiosko "
+        "en cada fase, calculados sobre el ticket promedio declarado por los encuestados "
+        "(${gasto}) y la tasa de consumo del {tasa:.1f}% de los visitantes. "
         "El horizonte 2036 coincide con la visión de largo plazo de la Política Pública "
         "Metropolitana de Espacio Público (PPMEP 2025–2036), que proyecta la consolidación "
         "del Parque Bicentenario como núcleo estratégico del modelo policéntrico-compacto "
         "del DMQ, impulsado por el Desarrollo Orientado al Transporte (DOT) en torno a las "
-        "estaciones del Metro (pág. 43 PPMEP).".format(gasto=gasto)
+        "estaciones del Metro (pág. 43 PPMEP).".format(gasto=gasto, tasa=kpis["consumiria_pct"])
     ))
     _insert_img(doc, charts.get("ing_zona"),
-                "Gráfico 9. Proyección de ingresos totales de la zona 2026–2036 (miles USD/año)", 6.0)
+                "Gráfico 9. Crecimiento de ingresos diarios de la zona — 2026–2036 (USD/día)", 6.0)
     _insert_img(doc, charts.get("ing_kio"),
-                "Gráfico 10. Proyección de ingresos promedio por kiosko 2026–2036 (miles USD/año)", 6.0)
+                "Gráfico 10. Ingreso diario por kiosko — evolución por fase 2026–2036 (USD/kiosko/día)", 6.0)
 
     _p(doc, "Impacto en valorización del suelo (AIVA):", bold=True)
     _kpi_table(doc, [
