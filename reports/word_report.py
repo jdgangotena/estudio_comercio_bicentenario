@@ -110,17 +110,22 @@ def build_charts(enc, kpis, stats, fc):
         ax.set_title(title, fontsize=12, fontweight="bold", color=BLUE, pad=12)
         return _save(fig)
 
-    def _hbar(labels, values, title, w=6, h=4):
+    def _hbar(labels, values, title, w=6, h=4, color=None):
+        """Barra horizontal en porcentaje con etiquetas de datos."""
+        color = color or BLUE
+        total = sum(values)
+        pcts  = [v / total * 100 for v in values] if total > 0 else list(values)
         fig, ax = plt.subplots(figsize=(w, h))
-        bars = ax.barh(labels, values, color=BLUE, alpha=0.85, height=0.55)
-        ax.set_xlabel("Número de encuestados", fontsize=9)
+        bars = ax.barh(labels, pcts, color=color, alpha=0.85, height=0.55)
+        ax.set_xlabel("% de encuestados", fontsize=9)
         ax.set_title(title, fontsize=12, fontweight="bold", color=BLUE, pad=10)
         ax.spines[["top","right"]].set_visible(False)
-        for bar, val in zip(bars, values):
-            ax.text(bar.get_width() + max(values)*0.01,
-                    bar.get_y() + bar.get_height()/2,
-                    str(int(val)), va="center", fontsize=9)
-        ax.set_xlim(0, max(values) * 1.18)
+        for bar, pct in zip(bars, pcts):
+            ax.text(bar.get_width() + max(pcts) * 0.01,
+                    bar.get_y() + bar.get_height() / 2,
+                    f"{pct:.1f}%", va="center", fontsize=9, fontweight="bold")
+        ax.set_xlim(0, max(pcts) * 1.22)
+        ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
         fig.tight_layout()
         return _save(fig)
 
@@ -198,13 +203,23 @@ def build_charts(enc, kpis, stats, fc):
         x = np.arange(len(anios))
         w = 0.38
         fig, ax = plt.subplots(figsize=(7, 4))
+        capacidad = [k * 30 for k in kios]
         b1 = ax.bar(x - w/2, demanda, w, label="Consumidores potenciales/día",
                     color=BLUE, alpha=0.85)
-        b2 = ax.bar(x + w/2, [k * 30 for k in kios], w,
+        b2 = ax.bar(x + w/2, capacidad, w,
                     label="Capacidad diaria (kioskos × 30 tx)", color=ORANGE, alpha=0.85)
+        # etiquetas de datos
+        _top = max(max(demanda), max(capacidad)) * 0.015
+        for bar, val in zip(b1, demanda):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + _top,
+                    f"{val:,}", ha="center", va="bottom", fontsize=8, fontweight="bold", color=BLUE)
+        for bar, val in zip(b2, capacidad):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + _top,
+                    f"{val:,}", ha="center", va="bottom", fontsize=8, fontweight="bold", color=ORANGE)
         ax.set_xticks(x)
         ax.set_xticklabels([f"Fase\n{a}" for a in anios], fontsize=9)
         ax.set_ylabel("Personas / transacciones diarias", fontsize=9)
+        ax.set_ylim(0, max(max(demanda), max(capacidad)) * 1.22)
         ax.set_title("Demanda potencial vs. capacidad del plan de kioskos",
                      fontsize=11, fontweight="bold", color=BLUE)
         ax.legend(fontsize=9)
@@ -223,11 +238,19 @@ def build_charts(enc, kpis, stats, fc):
         x = np.arange(len(anios))
         w = 0.38
         fig, ax = plt.subplots(figsize=(7, 4))
-        ax.bar(x - w/2, vis,  w, label="Visitantes/día estimados", color=BLUE, alpha=0.85)
-        ax.bar(x + w/2, cons, w, label=f"Consumidores ({kpis['consumiria_pct']}%)", color=GREEN, alpha=0.85)
+        bv = ax.bar(x - w/2, vis,  w, label="Visitantes/día estimados", color=BLUE, alpha=0.85)
+        bc = ax.bar(x + w/2, cons, w, label=f"Consumidores ({kpis['consumiria_pct']}%)", color=GREEN, alpha=0.85)
+        _top2 = max(max(vis), max(cons)) * 0.015
+        for bar, val in zip(bv, vis):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + _top2,
+                    f"{val:,}", ha="center", va="bottom", fontsize=8, fontweight="bold", color=BLUE)
+        for bar, val in zip(bc, cons):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + _top2,
+                    f"{val:,}", ha="center", va="bottom", fontsize=8, fontweight="bold", color=GREEN)
         ax.set_xticks(x)
         ax.set_xticklabels([f"Fase\n{a}" for a in anios], fontsize=9)
         ax.set_ylabel("Personas por día", fontsize=9)
+        ax.set_ylim(0, max(max(vis), max(cons)) * 1.22)
         ax.set_title("Proyección de visitantes vs. consumidores por fase",
                      fontsize=11, fontweight="bold", color=BLUE)
         ax.legend(fontsize=9)
@@ -355,26 +378,46 @@ def build_charts(enc, kpis, stats, fc):
     except Exception:
         charts["layout"] = None
 
-    # ── 11. Temas más solicitados (análisis de comentarios) ───────────────
+    # ── 11. Productos más demandados (enc["productos_interes"]) ──────────
+    try:
+        if "productos_interes" in enc.columns:
+            vc_p = enc["productos_interes"].dropna().value_counts().head(8)
+            charts["productos"] = _hbar(
+                vc_p.index[::-1].tolist(),
+                vc_p.values[::-1].tolist(),
+                "Productos y servicios más demandados",
+                w=7, h=4, color=ORANGE,
+            )
+        else:
+            charts["productos"] = None
+    except Exception:
+        charts["productos"] = None
+
+    # ── 12. Temas más solicitados (análisis de comentarios) ───────────────
     try:
         from analysis.sentiment import analyze_comments
         result_df = analyze_comments(enc)
         col_t = next((c for c in ["temas", "topic", "tema"] if c in result_df.columns), None)
         if result_df is not None and not result_df.empty and col_t:
             serie = result_df[col_t].dropna()
-            # Si los valores son listas, explotar primero
             if serie.apply(lambda x: isinstance(x, list)).any():
                 serie = serie.explode()
             tc = serie[serie != "Otro"].value_counts().head(8)
+            total_t = tc.sum()
+            tc_pct  = (tc / total_t * 100) if total_t > 0 else tc
             fig, ax = plt.subplots(figsize=(7, 4))
-            bars = ax.barh(tc.index[::-1], tc.values[::-1], color=BLUE, alpha=0.85, height=0.55)
-            ax.set_xlabel("Número de menciones", fontsize=9)
-            ax.set_title("Temas más solicitados por los visitantes",
+            bars = ax.barh(tc_pct.index[::-1], tc_pct.values[::-1],
+                           color=BLUE, alpha=0.85, height=0.55)
+            ax.set_xlabel("% de menciones en comentarios", fontsize=9)
+            ax.set_title("Temas más solicitados en comentarios de visitantes",
                          fontsize=11, fontweight="bold", color=BLUE)
             ax.spines[["top","right"]].set_visible(False)
-            for bar, val in zip(bars, tc.values[::-1]):
-                ax.text(bar.get_width() + 0.2, bar.get_y() + bar.get_height()/2,
-                        str(int(val)), va="center", fontsize=9)
+            for bar, val in zip(bars, tc_pct.values[::-1]):
+                ax.text(bar.get_width() + max(tc_pct.values) * 0.01,
+                        bar.get_y() + bar.get_height() / 2,
+                        f"{val:.1f}%", va="center", fontsize=9, fontweight="bold")
+            ax.set_xlim(0, max(tc_pct.values) * 1.22)
+            ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
             fig.tight_layout()
             charts["topics"] = _save(fig)
         else:
@@ -722,12 +765,21 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
                 "Gráfico 5. Demanda potencial de consumidores vs. capacidad del plan de kioskos", 6.0)
 
     _p(doc, (
-        "Los productos y servicios más demandados son snacks y bebidas (38.0%), bebidas "
-        "calientes, comida rápida y helados. El análisis de comentarios de los visitantes "
-        "confirma estas preferencias e identifica temas prioritarios de mejora:"
+        "Los productos y servicios que los visitantes preferirían adquirir dentro del parque "
+        "se identifican a partir de la pregunta directa de la encuesta. El gráfico siguiente "
+        "muestra la distribución porcentual de preferencias por categoría de producto:"
+    ))
+    _insert_img(doc, charts.get("productos"),
+                "Gráfico 6. Productos y servicios más demandados por los visitantes del parque", 6.0)
+
+    _p(doc, (
+        "Complementariamente, el análisis de los comentarios abiertos de los visitantes permite "
+        "identificar las necesidades y mejoras más mencionadas de forma espontánea. Este análisis "
+        "revela las prioridades percibidas por la ciudadanía más allá de las opciones cerradas "
+        "de la encuesta:"
     ))
     _insert_img(doc, charts.get("topics"),
-                "Gráfico 6. Temas más solicitados por los visitantes (análisis de comentarios)", 6.0)
+                "Gráfico 7. Temas más mencionados en comentarios de visitantes (% de menciones)", 6.0)
 
     # 5.4 Propuesta de modelo comercial
     _h(doc, "5.4 Propuesta de modelo comercial", 2)
@@ -816,7 +868,7 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
             tbl_f.rows[i].cells[j].paragraphs[0].runs[0].font.size = Pt(9)
     doc.add_paragraph()
     _insert_img(doc, charts.get("kioskos"),
-                "Gráfico 7. Proyección de kioskos por fase — 2026 a 2036", 6.0)
+                "Gráfico 8. Proyección de kioskos por fase — 2026 a 2036", 6.0)
 
     # 5.5 Proyección financiera
     _h(doc, "5.5 Proyección financiera y viabilidad", 2)
@@ -828,11 +880,11 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         "encuestados (${gasto}) bajo escenarios conservadores de ocupación.".format(gasto=gasto)
     ))
     _insert_img(doc, charts.get("visitantes_vs"),
-                "Gráfico 8. Proyección de visitantes vs. consumidores potenciales por fase", 6.0)
+                "Gráfico 9. Proyección de visitantes vs. consumidores potenciales por fase", 6.0)
     _insert_img(doc, charts.get("ing_zona"),
-                "Gráfico 9. Proyección de ingresos totales de la zona 2026–2036 (miles USD/año)", 6.0)
+                "Gráfico 10. Proyección de ingresos totales de la zona 2026–2036 (miles USD/año)", 6.0)
     _insert_img(doc, charts.get("ing_kio"),
-                "Gráfico 10. Proyección de ingresos promedio por kiosko 2026–2036 (miles USD/año)", 6.0)
+                "Gráfico 11. Proyección de ingresos promedio por kiosko 2026–2036 (miles USD/año)", 6.0)
 
     _p(doc, "Impacto en valorización del suelo (AIVA):", bold=True)
     _kpi_table(doc, [
