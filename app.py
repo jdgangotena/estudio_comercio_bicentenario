@@ -250,19 +250,22 @@ if pagina == "🏠 Resumen Ejecutivo":
             "con todos los gráficos, tablas, análisis y conclusiones."
         )
         if st.button("Generar y descargar informe Word", type="primary"):
-            with st.spinner("Generando informe… esto puede tardar unos segundos"):
-                try:
-                    from reports.word_report import generate_word_report
-                    _word_bytes = generate_word_report(enc, kpis, stats, _fc_h)
-                    st.download_button(
-                        label="⬇️ Descargar informe Word",
-                        data=_word_bytes,
-                        file_name="Estudio_Mercado_Kioskos_Bicentenario.docx",
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    )
-                    st.success("Informe generado correctamente.")
-                except Exception as _e_word:
-                    st.error(f"Error al generar el informe: {_e_word}")
+            try:
+                from reports.word_report import build_charts, generate_word_report
+                with st.spinner("Renderizando gráficos (1/2)…"):
+                    _charts = build_charts(enc, kpis, stats, _fc_h)
+                    _n_charts = sum(1 for v in _charts.values() if v is not None)
+                with st.spinner(f"Componiendo el documento Word con {_n_charts} gráficos (2/2)…"):
+                    _word_bytes = generate_word_report(enc, kpis, stats, _fc_h, charts=_charts)
+                st.download_button(
+                    label="⬇️ Descargar informe Word",
+                    data=_word_bytes,
+                    file_name="Estudio_Mercado_Kioskos_Bicentenario.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+                st.success(f"Informe generado con {_n_charts} gráficos incluidos.")
+            except Exception as _e_word:
+                st.error(f"Error al generar el informe: {_e_word}")
 
     # ── 1. VISITAS AL PARQUE ──────────────────────────────────────────────────
     st.markdown('<p class="section-header">1. Visitas al Parque Bicentenario 2025</p>',
