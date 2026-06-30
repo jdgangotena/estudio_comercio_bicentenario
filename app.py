@@ -240,6 +240,30 @@ if pagina == "🏠 Resumen Ejecutivo":
         "Análisis integral de viabilidad comercial · Parque Metropolitano Bicentenario · Quito, 2026",
     )
 
+    # forecast needed early for the download button and section 4+
+    _fc_h = forecast_kioskos(enc, stats)
+
+    # ── BOTÓN DE DESCARGA WORD ────────────────────────────────────────────────
+    with st.expander("📄 Descargar informe completo en Word", expanded=False):
+        st.markdown(
+            "Genera el informe profesional del estudio de mercado en formato **.docx** "
+            "con todos los gráficos, tablas, análisis y conclusiones."
+        )
+        if st.button("Generar y descargar informe Word", type="primary"):
+            with st.spinner("Generando informe… esto puede tardar unos segundos"):
+                try:
+                    from reports.word_report import generate_word_report
+                    _word_bytes = generate_word_report(enc, kpis, stats, _fc_h)
+                    st.download_button(
+                        label="⬇️ Descargar informe Word",
+                        data=_word_bytes,
+                        file_name="Estudio_Mercado_Kioskos_Bicentenario.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+                    st.success("Informe generado correctamente.")
+                except Exception as _e_word:
+                    st.error(f"Error al generar el informe: {_e_word}")
+
     # ── 1. VISITAS AL PARQUE ──────────────────────────────────────────────────
     st.markdown('<p class="section-header">1. Visitas al Parque Bicentenario 2025</p>',
                 unsafe_allow_html=True)
@@ -440,7 +464,6 @@ if pagina == "🏠 Resumen Ejecutivo":
     st.markdown('<p class="section-header">4. Validación estadística – Prueba de Hipótesis</p>',
                 unsafe_allow_html=True)
 
-    _fc_h = forecast_kioskos(enc, stats)
     _h1 = test_h1_cantidad_kioskos(enc, _fc_h)
     _h2 = test_h2_aprobacion_kioskos(enc)
 
