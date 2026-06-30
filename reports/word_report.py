@@ -311,7 +311,51 @@ def build_charts(enc, kpis, stats, fc):
     except Exception:
         charts["ing_kio"] = None
 
-    # ── 10. Temas más solicitados (análisis de comentarios) ───────────────
+    # ── 10. Distribución de kioskos en el bulevar ────────────────────────
+    try:
+        from models.kiosko_model import GIRO_ROTATION, GIROS
+        rotation = GIRO_ROTATION["comercial_alta_densidad"]
+        n = 10
+        giros = rotation[:n]
+        colores_giro = {
+            "Bebidas":                            "#2196F3",
+            "Comida rápida":                      "#FF5722",
+            "Helados y café":                     "#9C27B0",
+            "Snacks saludables":                  "#4CAF50",
+            "Artículos para mascotas y souvenirs":"#FF9800",
+            "Deportivo":                          "#F44336",
+        }
+        colors = [colores_giro.get(g, BLUE) for g in giros]
+
+        fig, ax = plt.subplots(figsize=(10, 3))
+        ax.set_xlim(0, n)
+        ax.set_ylim(0, 1)
+        ax.axis("off")
+
+        for i, (giro, col) in enumerate(zip(giros, colors)):
+            # Rectángulo del kiosko
+            rect = plt.Rectangle((i + 0.1, 0.15), 0.8, 0.55,
+                                  color=col, alpha=0.88, zorder=3)
+            ax.add_patch(rect)
+            # Número
+            ax.text(i + 0.5, 0.42, f"K{i+1}",
+                    ha="center", va="center", fontsize=9,
+                    fontweight="bold", color="white", zorder=4)
+            # Etiqueta giro (debajo)
+            label = giro.replace(" y ", "\ny ").replace(" para ", "\npara ")
+            ax.text(i + 0.5, 0.08, label,
+                    ha="center", va="top", fontsize=6, color="#333", zorder=4)
+
+        ax.set_title("Distribución comercial propuesta — Bulevar de las Canchas (10 kioskos, Fase 1)",
+                     fontsize=10, fontweight="bold", color=BLUE, pad=6)
+        ax.set_facecolor("#f0f0f0")
+        fig.patch.set_facecolor("white")
+        fig.tight_layout()
+        charts["layout"] = _save(fig)
+    except Exception:
+        charts["layout"] = None
+
+    # ── 11. Temas más solicitados (análisis de comentarios) ───────────────
     try:
         from analysis.sentiment import analyze_comments
         result_df = analyze_comments(enc)
@@ -612,10 +656,44 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
 
     _h(doc, "6.2 Giros comerciales propuestos", 2)
     _p(doc, (
-        "Los giros se asignan por rotación garantizando diversidad y evitando competencia "
-        "directa entre módulos: Bebidas, Comida rápida, Helados y café, Snacks saludables, "
-        "Artículos para mascotas y souvenirs, Deportivo."
+        "Los giros se asignan por rotación garantizando diversidad de oferta y evitando "
+        "competencia directa entre módulos adyacentes. La Fase 1 arranca con 10 kioskos "
+        "distribuidos en 6 giros distintos:"
     ))
+
+    from models.kiosko_model import GIROS, GIRO_ROTATION
+    giro_rows = [
+        (g, GIROS[g]["descripcion"])
+        for g in GIROS
+    ]
+    tbl_g = doc.add_table(rows=len(giro_rows) + 1, cols=2)
+    tbl_g.style = "Table Grid"
+    for j, h in enumerate(["Giro comercial", "Productos / servicios"]):
+        c = tbl_g.rows[0].cells[j]
+        c.text = h
+        c.paragraphs[0].runs[0].bold = True
+        c.paragraphs[0].runs[0].font.size = Pt(10)
+    for i, (giro, desc) in enumerate(giro_rows, 1):
+        tbl_g.rows[i].cells[0].text = giro
+        tbl_g.rows[i].cells[1].text = desc
+        for j in range(2):
+            tbl_g.rows[i].cells[j].paragraphs[0].runs[0].font.size = Pt(10)
+    doc.add_paragraph()
+
+    _p(doc, "Distribución de kioskos por rotación — Fase 1 (10 kioskos):", bold=True)
+    rotation = GIRO_ROTATION["comercial_alta_densidad"]
+    tbl_r = doc.add_table(rows=2, cols=10)
+    tbl_r.style = "Table Grid"
+    for i, giro in enumerate(rotation[:10]):
+        tbl_r.rows[0].cells[i].text = f"K{i+1}"
+        tbl_r.rows[0].cells[i].paragraphs[0].runs[0].bold = True
+        tbl_r.rows[0].cells[i].paragraphs[0].runs[0].font.size = Pt(8)
+        tbl_r.rows[1].cells[i].text = giro
+        tbl_r.rows[1].cells[i].paragraphs[0].runs[0].font.size = Pt(8)
+    doc.add_paragraph()
+
+    _insert_img(doc, charts.get("layout"),
+                "Figura 3. Distribución comercial propuesta — Bulevar de las Canchas (Fase 1, 10 kioskos)", 6.0)
 
     _h(doc, "6.3 Plan de implementación por fases", 2)
     _p(doc, (
