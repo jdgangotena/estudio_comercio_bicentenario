@@ -69,65 +69,272 @@ def _numbered(doc, items):
         doc.add_paragraph(item, style="List Number")
 
 
-# ── chart pre-generator (llamar desde app.py antes de generate_word_report) ───
+# ── chart generator con matplotlib (sin kaleido, funciona en Streamlit) ───────
 
 def build_charts(enc, kpis, stats, fc):
     """
-    Genera todas las imágenes de gráficos como bytes PNG.
-    Llamar desde el contexto de Streamlit (botón) para que kaleido funcione.
-
-    Retorna dict: nombre → bytes PNG (o None si falla).
+    Genera todas las imágenes con matplotlib puro (sin kaleido/subprocesos).
+    Retorna dict: nombre → bytes PNG.
     """
-    from models.kiosko_model import (
-        fig_kioskos_por_zona, fig_visitantes_vs_demanda,
-        fig_trafico_parque_total, fig_demanda_vs_plan_parque,
-        fig_ingresos_fases_zona, fig_ingresos_fases_por_kiosko,
-    )
-    from analysis.univariate import pie_categorica, bar_categorica
-    from analysis.sentiment import analyze_comments, topics_bar
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as mticker
+    import numpy as np
+    from models.kiosko_model import PLAN_FASES, COMMERCIAL_PARAMS
 
-    def _png(fig, w=800, h=430):
-        try:
-            return fig.to_image(format="png", width=w, height=h, scale=2)
-        except Exception:
-            return None
+    BLUE   = "#1a3a5c"
+    ORANGE = "#e67e22"
+    GREEN  = "#27ae60"
+    COLS   = [BLUE, ORANGE, GREEN, "#8e44ad", "#e74c3c", "#16a085", "#f39c12"]
+
+    def _save(fig):
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight",
+                    facecolor="white", edgecolor="none")
+        buf.seek(0)
+        data = buf.read()
+        plt.close(fig)
+        return data
+
+    def _pie(series, title, w=5, h=4):
+        vc = series.dropna().str.strip().value_counts()
+        fig, ax = plt.subplots(figsize=(w, h))
+        wedges, texts, autotexts = ax.pie(
+            vc.values, labels=vc.index, autopct="%1.1f%%",
+            colors=COLS[:len(vc)], startangle=90,
+            wedgeprops=dict(linewidth=1, edgecolor="white"),
+        )
+        for t in autotexts:
+            t.set_fontsize(9)
+        ax.set_title(title, fontsize=12, fontweight="bold", color=BLUE, pad=12)
+        return _save(fig)
+
+    def _hbar(labels, values, title, w=6, h=4):
+        fig, ax = plt.subplots(figsize=(w, h))
+        bars = ax.barh(labels, values, color=BLUE, alpha=0.85, height=0.55)
+        ax.set_xlabel("Número de encuestados", fontsize=9)
+        ax.set_title(title, fontsize=12, fontweight="bold", color=BLUE, pad=10)
+        ax.spines[["top","right"]].set_visible(False)
+        for bar, val in zip(bars, values):
+            ax.text(bar.get_width() + max(values)*0.01,
+                    bar.get_y() + bar.get_height()/2,
+                    str(int(val)), va="center", fontsize=9)
+        ax.set_xlim(0, max(values) * 1.18)
+        fig.tight_layout()
+        return _save(fig)
 
     charts = {}
 
-    # Demográficos
-    if "genero" in enc.columns:
-        charts["genero"] = _png(pie_categorica(enc["genero"], "Distribución por género"), 520, 360)
-
-    if "edad" in enc.columns:
-        edad_bins = pd.cut(
-            enc["edad"].dropna(),
-            bins=[0, 20, 30, 40, 50, 60, 120],
-            labels=["< 20", "20–29", "30–39", "40–49", "50–59", "60+"],
-        )
-        charts["edad"] = _png(
-            bar_categorica(edad_bins.astype(str), "Distribución por grupo de edad",
-                           order=["< 20","20–29","30–39","40–49","50–59","60+"],
-                           horizontal=True), 580, 360)
-
-    if "motivo_visita" in enc.columns:
-        charts["motivo"] = _png(pie_categorica(enc["motivo_visita"], "Motivo principal de visita"), 520, 360)
-
-    # Tráfico y demanda
-    charts["trafico"]  = _png(fig_trafico_parque_total(stats))
-    charts["demanda"]  = _png(fig_demanda_vs_plan_parque(stats, enc))
-    charts["visitantes_vs"] = _png(fig_visitantes_vs_demanda(stats, enc))
-
-    # Modelo comercial
-    charts["kioskos"]  = _png(fig_kioskos_por_zona(fc))
-
-    # Financiero
-    charts["ing_zona"] = _png(fig_ingresos_fases_zona(stats, enc))
-    charts["ing_kio"]  = _png(fig_ingresos_fases_por_kiosko(stats, enc))
-
-    # Temas (sentiment)
+    # ── 1. Género ──────────────────────────────────────────────────────────
     try:
+        if "genero" in enc.columns:
+            charts["genero"] = _pie(enc["genero"], "Distribución por género")
+    except Exception:
+        charts["genero"] = None
+
+    # ── 2. Edad ───────────────────────────────────────────────────────────
+    try:
+        if "edad" in enc.columns:
+            orden = ["< 20", "20–29", "30–39", "40–49", "50–59", "60+"]
+            bins  = pd.cut(enc["edad"].dropna(),
+                           bins=[0,20,30,40,50,60,120], labels=orden)
+            vc = bins.value_counts().reindex(orden).fillna(0)
+            charts["edad"] = _hbar(vc.index.tolist(), vc.values.tolist(),
+                                   "Distribución por grupo de edad")
+    except Exception:
+        charts["edad"] = None
+
+    # ── 3. Motivo de visita ───────────────────────────────────────────────
+    try:
+        if "motivo_visita" in enc.columns:
+            charts["motivo"] = _pie(enc["motivo_visita"], "Motivo principal de visita")
+    except Exception:
+        charts["motivo"] = None
+
+    # ── 4. Tráfico mensual 2025 ───────────────────────────────────────────
+    try:
+        meses_dfs = [
+            df[["mes", "num_mes", "total"]].copy()
+            for df in stats.values()
+            if "total" in df.columns and "mes" in df.columns
+        ]
+        agg = (pd.concat(meses_dfs)
+               .groupby(["mes", "num_mes"])["total"].sum()
+               .reset_index().sort_values("num_mes"))
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.plot(agg["mes"], agg["total"], color=BLUE, linewidth=2.2,
+                marker="o", markersize=5)
+        ax.fill_between(range(len(agg)), agg["total"].values,
+                        alpha=0.12, color=BLUE)
+        media = agg["total"].mean()
+        ax.axhline(media, color="#e74c3c", linewidth=1.4, linestyle="--",
+                   label=f"Media: {int(media):,}")
+        ax.legend(fontsize=9)
+        ax.set_xticks(range(len(agg)))
+        ax.set_xticklabels(agg["mes"], rotation=35, ha="right", fontsize=8)
+        ax.set_xlabel("Mes", fontsize=9)
+        ax.set_ylabel("Visitas", fontsize=9)
+        ax.set_title("Tráfico de visitantes al Parque Bicentenario — 2025",
+                     fontsize=12, fontweight="bold", color=BLUE)
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+            lambda x, _: f"{int(x/1000)}k" if x >= 1000 else str(int(x))))
+        ax.spines[["top","right"]].set_visible(False)
+        fig.tight_layout()
+        charts["trafico"] = _save(fig)
+    except Exception:
+        charts["trafico"] = None
+
+    # ── 5. Demanda vs plan de kioskos ─────────────────────────────────────
+    try:
+        cons_pct = kpis["consumiria_pct"] / 100
+        vis_dia  = round(kpis["total_visitas_parque_2025"] / 365)
+        fases = sorted(PLAN_FASES.items())
+        anios = [str(a) for a, _ in fases]
+        kios  = [sum(p["kioskos"].values()) for _, p in fases]
+        pobs  = [p["poblacion_hab"] for _, p in fases]
+        demanda = [round(pop * 0.008 * cons_pct) for pop in pobs]
+
+        x = np.arange(len(anios))
+        w = 0.38
+        fig, ax = plt.subplots(figsize=(7, 4))
+        b1 = ax.bar(x - w/2, demanda, w, label="Consumidores potenciales/día",
+                    color=BLUE, alpha=0.85)
+        b2 = ax.bar(x + w/2, [k * 30 for k in kios], w,
+                    label="Capacidad diaria (kioskos × 30 tx)", color=ORANGE, alpha=0.85)
+        ax.set_xticks(x)
+        ax.set_xticklabels([f"Fase\n{a}" for a in anios], fontsize=9)
+        ax.set_ylabel("Personas / transacciones diarias", fontsize=9)
+        ax.set_title("Demanda potencial vs. capacidad del plan de kioskos",
+                     fontsize=11, fontweight="bold", color=BLUE)
+        ax.legend(fontsize=9)
+        ax.spines[["top","right"]].set_visible(False)
+        fig.tight_layout()
+        charts["demanda"] = _save(fig)
+    except Exception:
+        charts["demanda"] = None
+
+    # ── 6. Visitantes vs consumidores por fase ────────────────────────────
+    try:
+        fases = sorted(PLAN_FASES.items())
+        anios = [str(a) for a, _ in fases]
+        vis   = [round(p["poblacion_hab"] * 0.008) for _, p in fases]
+        cons  = [round(v * kpis["consumiria_pct"] / 100) for v in vis]
+        x = np.arange(len(anios))
+        w = 0.38
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.bar(x - w/2, vis,  w, label="Visitantes/día estimados", color=BLUE, alpha=0.85)
+        ax.bar(x + w/2, cons, w, label=f"Consumidores ({kpis['consumiria_pct']}%)", color=GREEN, alpha=0.85)
+        ax.set_xticks(x)
+        ax.set_xticklabels([f"Fase\n{a}" for a in anios], fontsize=9)
+        ax.set_ylabel("Personas por día", fontsize=9)
+        ax.set_title("Proyección de visitantes vs. consumidores por fase",
+                     fontsize=11, fontweight="bold", color=BLUE)
+        ax.legend(fontsize=9)
+        ax.spines[["top","right"]].set_visible(False)
+        fig.tight_layout()
+        charts["visitantes_vs"] = _save(fig)
+    except Exception:
+        charts["visitantes_vs"] = None
+
+    # ── 7. Kioskos por fase ───────────────────────────────────────────────
+    try:
+        fases = sorted(PLAN_FASES.items())
+        anios = [str(a) for a, _ in fases]
+        kios  = [sum(p["kioskos"].values()) for _, p in fases]
+        fig, ax = plt.subplots(figsize=(7, 4))
+        bars = ax.bar(anios, kios, color=BLUE, alpha=0.85, width=0.5)
+        for bar, val in zip(bars, kios):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.3,
+                    str(val), ha="center", va="bottom", fontweight="bold", fontsize=11)
+        ax.set_ylabel("Número de kioskos", fontsize=9)
+        ax.set_title("Proyección de kioskos — Plan por fases 2026–2036",
+                     fontsize=11, fontweight="bold", color=BLUE)
+        ax.set_ylim(0, max(kios) * 1.2)
+        ax.spines[["top","right"]].set_visible(False)
+        fig.tight_layout()
+        charts["kioskos"] = _save(fig)
+    except Exception:
+        charts["kioskos"] = None
+
+    # ── 8. Ingresos por zona ──────────────────────────────────────────────
+    try:
+        gasto = kpis["gasto_promedio_usd"]
+        fases = sorted(PLAN_FASES.items())
+        anios = [str(a) for a, _ in fases]
+        ingresos_zona = []
+        for a, p in fases:
+            kios_n = sum(p["kioskos"].values())
+            vis_d  = round(p["poblacion_hab"] * 0.008)
+            cons_d = round(vis_d * kpis["consumiria_pct"] / 100)
+            ing    = round(cons_d * gasto * 365 / 1000)
+            ingresos_zona.append(ing)
+        fig, ax = plt.subplots(figsize=(7, 4))
+        bars = ax.bar(anios, ingresos_zona, color=ORANGE, alpha=0.85, width=0.5)
+        for bar, val in zip(bars, ingresos_zona):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(ingresos_zona)*0.01,
+                    f"${val:,}k", ha="center", va="bottom", fontsize=9, fontweight="bold")
+        ax.set_ylabel("Ingresos potenciales (miles USD/año)", fontsize=9)
+        ax.set_title("Proyección de ingresos totales de la zona — 2026–2036",
+                     fontsize=11, fontweight="bold", color=BLUE)
+        ax.spines[["top","right"]].set_visible(False)
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${int(x):,}k"))
+        fig.tight_layout()
+        charts["ing_zona"] = _save(fig)
+    except Exception:
+        charts["ing_zona"] = None
+
+    # ── 9. Ingresos por kiosko ────────────────────────────────────────────
+    try:
+        gasto = kpis["gasto_promedio_usd"]
+        fases = sorted(PLAN_FASES.items())
+        anios = [str(a) for a, _ in fases]
+        ing_kio = []
+        for a, p in fases:
+            kios_n = sum(p["kioskos"].values())
+            vis_d  = round(p["poblacion_hab"] * 0.008)
+            cons_d = round(vis_d * kpis["consumiria_pct"] / 100)
+            ing    = round(cons_d * gasto * 365 / kios_n / 1000, 1) if kios_n else 0
+            ing_kio.append(ing)
+        fig, ax = plt.subplots(figsize=(7, 4))
+        bars = ax.bar(anios, ing_kio, color=GREEN, alpha=0.85, width=0.5)
+        for bar, val in zip(bars, ing_kio):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(ing_kio)*0.01,
+                    f"${val:,}k", ha="center", va="bottom", fontsize=9, fontweight="bold")
+        ax.set_ylabel("Ingresos por kiosko (miles USD/año)", fontsize=9)
+        ax.set_title("Proyección de ingresos promedio por kiosko — 2026–2036",
+                     fontsize=11, fontweight="bold", color=BLUE)
+        ax.spines[["top","right"]].set_visible(False)
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${int(x):,}k"))
+        fig.tight_layout()
+        charts["ing_kio"] = _save(fig)
+    except Exception:
+        charts["ing_kio"] = None
+
+    # ── 10. Temas más solicitados (análisis de comentarios) ───────────────
+    try:
+        from analysis.sentiment import analyze_comments
         result_df = analyze_comments(enc)
-        charts["topics"] = _png(topics_bar(result_df))
+        col_t = next((c for c in ["temas", "topic", "tema"] if c in result_df.columns), None)
+        if result_df is not None and not result_df.empty and col_t:
+            serie = result_df[col_t].dropna()
+            # Si los valores son listas, explotar primero
+            if serie.apply(lambda x: isinstance(x, list)).any():
+                serie = serie.explode()
+            tc = serie[serie != "Otro"].value_counts().head(8)
+            fig, ax = plt.subplots(figsize=(7, 4))
+            bars = ax.barh(tc.index[::-1], tc.values[::-1], color=BLUE, alpha=0.85, height=0.55)
+            ax.set_xlabel("Número de menciones", fontsize=9)
+            ax.set_title("Temas más solicitados por los visitantes",
+                         fontsize=11, fontweight="bold", color=BLUE)
+            ax.spines[["top","right"]].set_visible(False)
+            for bar, val in zip(bars, tc.values[::-1]):
+                ax.text(bar.get_width() + 0.2, bar.get_y() + bar.get_height()/2,
+                        str(int(val)), va="center", fontsize=9)
+            fig.tight_layout()
+            charts["topics"] = _save(fig)
+        else:
+            charts["topics"] = None
     except Exception:
         charts["topics"] = None
 
