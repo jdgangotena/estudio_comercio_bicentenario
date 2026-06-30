@@ -190,42 +190,41 @@ def build_charts(enc, kpis, stats, fc):
     except Exception:
         charts["trafico"] = None
 
-    # ── 5. Demanda vs plan de kioskos ─────────────────────────────────────
-    # Metodología: se ancla en las visitas reales medidas en 2025 (vis_dia) y se
-    # proyecta con el factor de crecimiento poblacional del sector (mismo método
-    # que fig_ingresos_fases_zona en models/kiosko_model.py), NO con un % fijo
-    # arbitrario de la población total del sector.
+    # ── 5. Visitantes vs consumidores potenciales por fase ────────────────
+    # Solo datos sustentados: vis_dia real 2025 proyectado con el factor de
+    # crecimiento poblacional del sector, y el % de consumo real de la encuesta
+    # (consumiria_pct). Sin supuestos de capacidad de kioskos no validados.
     try:
         cons_pct = kpis["consumiria_pct"] / 100
         vis_dia  = round(kpis["total_visitas_parque_2025"] / 365)
         fases = sorted(PLAN_FASES.items())
         anios = [str(a) for a, _ in fases]
-        kios  = [sum(p["kioskos"].values()) for _, p in fases]
         pob_base = fases[0][1]["poblacion_hab"]
         factores = [p["poblacion_hab"] / pob_base for _, p in fases]
-        demanda  = [round(vis_dia * f * cons_pct) for f in factores]
+        visitantes = [round(vis_dia * f) for f in factores]
+        demanda    = [round(v * cons_pct) for v in visitantes]
 
         x = np.arange(len(anios))
         w = 0.38
         fig, ax = plt.subplots(figsize=(7, 4))
-        capacidad = [k * 30 for k in kios]
-        b1 = ax.bar(x - w/2, demanda, w, label="Consumidores potenciales/día",
+        b1 = ax.bar(x - w/2, visitantes, w, label="Visitantes/día",
                     color=BLUE, alpha=0.85)
-        b2 = ax.bar(x + w/2, capacidad, w,
-                    label="Capacidad diaria (kioskos × 30 tx)", color=ORANGE, alpha=0.85)
+        b2 = ax.bar(x + w/2, demanda, w,
+                    label=f"Consumidores potenciales/día ({kpis['consumiria_pct']}%)",
+                    color=ORANGE, alpha=0.85)
         # etiquetas de datos
-        _top = max(max(demanda), max(capacidad)) * 0.015
-        for bar, val in zip(b1, demanda):
+        _top = max(max(visitantes), max(demanda)) * 0.015
+        for bar, val in zip(b1, visitantes):
             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + _top,
                     f"{val:,}", ha="center", va="bottom", fontsize=8, fontweight="bold", color=BLUE)
-        for bar, val in zip(b2, capacidad):
+        for bar, val in zip(b2, demanda):
             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + _top,
                     f"{val:,}", ha="center", va="bottom", fontsize=8, fontweight="bold", color=ORANGE)
         ax.set_xticks(x)
         ax.set_xticklabels([f"Fase\n{a}" for a in anios], fontsize=9)
-        ax.set_ylabel("Personas / transacciones diarias", fontsize=9)
-        ax.set_ylim(0, max(max(demanda), max(capacidad)) * 1.22)
-        ax.set_title("Demanda potencial vs. capacidad del plan de kioskos",
+        ax.set_ylabel("Personas / día", fontsize=9)
+        ax.set_ylim(0, max(max(visitantes), max(demanda)) * 1.22)
+        ax.set_title("Visitantes vs. consumidores potenciales por fase",
                      fontsize=11, fontweight="bold", color=BLUE)
         ax.legend(fontsize=9)
         ax.spines[["top","right"]].set_visible(False)
@@ -233,42 +232,6 @@ def build_charts(enc, kpis, stats, fc):
         charts["demanda"] = _save(fig)
     except Exception:
         charts["demanda"] = None
-
-    # ── 6. Visitantes vs consumidores por fase ────────────────────────────
-    # Misma metodología: vis_dia real 2025 proyectado con el factor de
-    # crecimiento poblacional del sector por fase.
-    try:
-        cons_pct2 = kpis["consumiria_pct"] / 100
-        vis_dia2  = round(kpis["total_visitas_parque_2025"] / 365)
-        fases = sorted(PLAN_FASES.items())
-        anios = [str(a) for a, _ in fases]
-        pob_base2 = fases[0][1]["poblacion_hab"]
-        vis   = [round(vis_dia2 * (p["poblacion_hab"] / pob_base2)) for _, p in fases]
-        cons  = [round(v * cons_pct2) for v in vis]
-        x = np.arange(len(anios))
-        w = 0.38
-        fig, ax = plt.subplots(figsize=(7, 4))
-        bv = ax.bar(x - w/2, vis,  w, label="Visitantes/día estimados", color=BLUE, alpha=0.85)
-        bc = ax.bar(x + w/2, cons, w, label=f"Consumidores ({kpis['consumiria_pct']}%)", color=GREEN, alpha=0.85)
-        _top2 = max(max(vis), max(cons)) * 0.015
-        for bar, val in zip(bv, vis):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + _top2,
-                    f"{val:,}", ha="center", va="bottom", fontsize=8, fontweight="bold", color=BLUE)
-        for bar, val in zip(bc, cons):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + _top2,
-                    f"{val:,}", ha="center", va="bottom", fontsize=8, fontweight="bold", color=GREEN)
-        ax.set_xticks(x)
-        ax.set_xticklabels([f"Fase\n{a}" for a in anios], fontsize=9)
-        ax.set_ylabel("Personas por día", fontsize=9)
-        ax.set_ylim(0, max(max(vis), max(cons)) * 1.22)
-        ax.set_title("Proyección de visitantes vs. consumidores por fase",
-                     fontsize=11, fontweight="bold", color=BLUE)
-        ax.legend(fontsize=9)
-        ax.spines[["top","right"]].set_visible(False)
-        fig.tight_layout()
-        charts["visitantes_vs"] = _save(fig)
-    except Exception:
-        charts["visitantes_vs"] = None
 
     # ── 7. Kioskos por fase ───────────────────────────────────────────────
     try:
@@ -782,7 +745,7 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         f"implementación de kioskos y el {mejora}% considera que mejoraría su experiencia."
     ))
     _insert_img(doc, charts.get("demanda"),
-                "Gráfico 5. Demanda potencial de consumidores vs. capacidad del plan de kioskos", 6.0)
+                "Gráfico 5. Visitantes vs. consumidores potenciales por fase (52.4% de consumo declarado)", 6.0)
 
     _p(doc, (
         "Los productos y servicios que los visitantes preferirían adquirir dentro del parque "
@@ -899,12 +862,10 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         "activos. Los modelos de ingreso utilizan el ticket promedio declarado por los "
         "encuestados (${gasto}) bajo escenarios conservadores de ocupación.".format(gasto=gasto)
     ))
-    _insert_img(doc, charts.get("visitantes_vs"),
-                "Gráfico 9. Proyección de visitantes vs. consumidores potenciales por fase", 6.0)
     _insert_img(doc, charts.get("ing_zona"),
-                "Gráfico 10. Proyección de ingresos totales de la zona 2026–2036 (miles USD/año)", 6.0)
+                "Gráfico 9. Proyección de ingresos totales de la zona 2026–2036 (miles USD/año)", 6.0)
     _insert_img(doc, charts.get("ing_kio"),
-                "Gráfico 11. Proyección de ingresos promedio por kiosko 2026–2036 (miles USD/año)", 6.0)
+                "Gráfico 10. Proyección de ingresos promedio por kiosko 2026–2036 (miles USD/año)", 6.0)
 
     _p(doc, "Impacto en valorización del suelo (AIVA):", bold=True)
     _kpi_table(doc, [
