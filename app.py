@@ -873,9 +873,10 @@ if pagina == "🏠 Resumen Ejecutivo":
     <b>Marco institucional:</b> La <em>Política Pública Metropolitana de Espacio Público (PPMEP) 2025–2036</em>
     establece como visión al año 2036 un espacio público del DMQ integrado a la naturaleza y orientado al
     desarrollo humano, con las estaciones del Metro como <em>"núcleos estratégicos"</em> (pág. 43). El proyecto
-    <b>NFC1 "Quioscos Quito"</b> de esa política valida explícitamente los kioskos en espacio público como
-    nueva forma de comercio (pág. 58), dentro del modelo <b>policéntrico-compacto</b> de Desarrollo Orientado
-    al Transporte (DOT) que guía la transformación del sector.
+    El proyecto <b>NFC1 "Nuevas formas de comercio"</b> y su programa específico <b>NFC2 "Quioscos Quito"</b>
+    (pág. 58) validan explícitamente los kioskos en espacio público como estrategia de activación
+    comercial, dentro del modelo <b>policéntrico-compacto</b> de Desarrollo Orientado al Transporte
+    (DOT) que guía la transformación del sector.
     </span>
     </div>
     """, unsafe_allow_html=True)
@@ -2111,8 +2112,9 @@ elif pagina == "🏪 Modelo comercial":
         <b>policéntrico-compacto</b> de Desarrollo Orientado al Transporte (DOT), priorizando
         las áreas próximas a las estaciones del Metro como <em>"núcleos estratégicos"</em> (pág. 43).
         El proyecto <b>CCMA1 "Zonas Metro"</b> (pág. 57) contempla intervenciones en el radio de
-        influencia de cada estación, y el proyecto <b>NFC1 "Quioscos Quito"</b> (pág. 58)
-        valida explícitamente el comercio en kiosko como estrategia de activación del espacio público.
+        influencia de cada estación, y los proyectos <b>NFC1 "Nuevas formas de comercio"</b>
+        y <b>NFC2 "Quioscos Quito"</b> (pág. 58) validan explícitamente el comercio en kiosko
+        como estrategia de activación del espacio público.
         El <em>Manual de Lineamientos del Parque Metropolitano Bicentenario</em> (SHOT-DMDU, 2025)
         establece la <b>Tipología 7 Comercial</b> (módulos de 9 × 4.8 m) para bulevares,
         definiendo el estándar físico aplicable a la propuesta.

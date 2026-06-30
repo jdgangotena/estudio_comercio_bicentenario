@@ -526,9 +526,10 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
     _p(doc, (
         f"El estudio se fundamenta en una encuesta aplicada a {n_enc} visitantes del parque "
         f"y en el análisis de {vis_2025:,} registros de visita correspondientes al año 2025, "
-        "proporcionados por la EPMMOP. Los resultados sirven de base técnica para la toma de "
-        "decisiones sobre la implementación, el dimensionamiento y el modelo de gestión del "
-        "proyecto de kioskos comerciales."
+        "entregados por la Gerencia de Administración de Parques y Espacios Verdes (GAPEV) "
+        "a la Gerencia Comercial (GC) de la EPMMOP para la elaboración del presente estudio. "
+        "Los resultados sirven de base técnica para la toma de decisiones sobre la implementación, "
+        "el dimensionamiento y el modelo de gestión del proyecto de kioskos comerciales."
     ))
     doc.add_page_break()
 
@@ -544,7 +545,9 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         "Administrado por la EPMMOP en virtud de la delegación otorgada por el Municipio del "
         "Distrito Metropolitano de Quito (MDMQ), el parque se ha consolidado como el principal "
         f"espacio de esparcimiento, deporte y cultura del norte de Quito, registrando "
-        f"{vis_2025:,} visitas durante el año 2025."
+        f"{vis_2025:,} visitas durante el año 2025, según datos entregados por la Gerencia "
+        "de Administración de Parques y Espacios Verdes (GAPEV) a la Gerencia Comercial (GC) "
+        "para la elaboración de este estudio."
     ))
     _p(doc, (
         "A pesar de su alta afluencia, el parque no cuenta con una oferta comercial formal que "
@@ -566,9 +569,9 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         "que fija el año 2036 como visión del Distrito Metropolitano de Quito y establece el modelo "
         "urbano policéntrico-compacto con Desarrollo Orientado al Transporte (DOT), priorizando "
         "las áreas próximas a las estaciones del Metro como núcleos estratégicos de intervención "
-        "(pág. 43). En ese marco, el proyecto NFC1 \"Quioscos Quito\" de la misma política valida "
-        "expresamente los kioskos comerciales en espacio público como nueva forma de comercio de "
-        "proximidad (pág. 58)."
+        "(pág. 43). En ese marco, el proyecto NFC1 \"Nuevas formas de comercio\" y su programa "
+        "NFC2 \"Quioscos Quito\" de la misma política validan expresamente los kioskos comerciales "
+        "en espacio público como nueva forma de comercio de proximidad (pág. 58)."
     ))
     doc.add_page_break()
 
@@ -603,8 +606,9 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
          "instalados en espacios públicos, aplicables al dimensionamiento de kioskos."),
         ("Política Pública Metropolitana de Espacio Público — PPMEP 2025–2036 (MDMQ)",
          "Instrumento rector del espacio público del DMQ con horizonte al año 2036. Define el modelo "
-         "urbano policéntrico-compacto con DOT. El proyecto NFC1 \"Quioscos Quito\" (pág. 58) valida "
-         "los kioskos comerciales en espacio público; el proyecto CCMA1 \"Zonas Metro\" (pág. 57) "
+         "urbano policéntrico-compacto con DOT. El proyecto NFC1 \"Nuevas formas de comercio\" y su "
+         "programa NFC2 \"Quioscos Quito\" (pág. 58) validan los kioskos comerciales en espacio "
+         "público; el proyecto CCMA1 \"Zonas Metro\" (pág. 57) "
          "establece intervenciones en el radio de influencia de estaciones del Metro, incluyendo el "
          "área del Parque Bicentenario."),
         ("Manual de Lineamientos del Parque Metropolitano Bicentenario (SHOT-DMDU, 2025)",
@@ -803,9 +807,10 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
     ])
     _p(doc, (
         "La propuesta cuenta con validación institucional explícita en la Política Pública "
-        "Metropolitana de Espacio Público (PPMEP 2025–2036): el proyecto NFC1 \"Quioscos Quito\" "
-        "(pág. 58) identifica los kioskos como estrategia prioritaria de \"nuevas formas de comercio "
-        "en espacio público\", alineada con el modelo DOT que articula comercio de proximidad con "
+        "Metropolitana de Espacio Público (PPMEP 2025–2036): el proyecto NFC1 \"Nuevas formas de "
+        "comercio\" y su programa NFC2 \"Quioscos Quito\" (pág. 58) identifican los kioskos como "
+        "estrategia prioritaria de activación comercial en espacio público, alineada con el modelo "
+        "DOT que articula comercio de proximidad con "
         "la red de movilidad metropolitana. El estándar físico de referencia es la Tipología 7 "
         "Comercial del Manual de Lineamientos del Parque Metropolitano Bicentenario (SHOT-DMDU, 2025), "
         "que especifica módulos de 9 × 4.8 m para bulevares con circulación peatonal intensa."
