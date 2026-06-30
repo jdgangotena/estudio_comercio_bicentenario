@@ -868,7 +868,15 @@ if pagina == "🏠 Resumen Ejecutivo":
     <b>AIVA del sector</b> (Área de Intervención Valorativa) está actualmente en <b>$267/m²</b>
     y se proyecta converger hacia valores similares al Parque La Carolina (<b>$1,895/m²</b>),
     lo que incrementará el valor de propiedades en el sector conforme el proyecto avance
-    y la zona se consolide como el nuevo polo comercial de Quito.
+    y la zona se consolide como el nuevo polo comercial de Quito.<br><br>
+    <span style="font-size:0.92em;color:#555;">
+    <b>Marco institucional:</b> La <em>Política Pública Metropolitana de Espacio Público (PPMEP) 2025–2036</em>
+    establece como visión al año 2036 un espacio público del DMQ integrado a la naturaleza y orientado al
+    desarrollo humano, con las estaciones del Metro como <em>"núcleos estratégicos"</em> (pág. 43). El proyecto
+    <b>NFC1 "Quioscos Quito"</b> de esa política valida explícitamente los kioskos en espacio público como
+    nueva forma de comercio (pág. 58), dentro del modelo <b>policéntrico-compacto</b> de Desarrollo Orientado
+    al Transporte (DOT) que guía la transformación del sector.
+    </span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2095,7 +2103,20 @@ elif pagina == "🏪 Modelo comercial":
         <b>2 nuevas estaciones de metro</b> dentro del área de influencia del parque
         (<i>Bicentenario</i> en el eje del bulevar y <i>Andalucía</i> a 1–2 cuadras al norte).
         Con El Labrador ya existente, el parque quedará entre <b>3 paradas de metro</b>,
-        convirtiéndose en el nuevo <b>hipercentro de Quito</b>.
+        convirtiéndose en el nuevo <b>polo comercial de Quito</b>.<br><br>
+        <span style="font-size:0.92em;color:#555;">
+        El horizonte <b>2025–2036</b> no es arbitrario: es el horizonte oficial de la
+        <em>Política Pública Metropolitana de Espacio Público (PPMEP 2025–2036)</em>, que
+        fija el año <b>2036</b> como visión del DMQ y establece el modelo
+        <b>policéntrico-compacto</b> de Desarrollo Orientado al Transporte (DOT), priorizando
+        las áreas próximas a las estaciones del Metro como <em>"núcleos estratégicos"</em> (pág. 43).
+        El proyecto <b>CCMA1 "Zonas Metro"</b> (pág. 57) contempla intervenciones en el radio de
+        influencia de cada estación, y el proyecto <b>NFC1 "Quioscos Quito"</b> (pág. 58)
+        valida explícitamente el comercio en kiosko como estrategia de activación del espacio público.
+        El <em>Manual de Lineamientos del Parque Metropolitano Bicentenario</em> (SHOT-DMDU, 2025)
+        establece la <b>Tipología 7 Comercial</b> (módulos de 9 × 4.8 m) para bulevares,
+        definiendo el estándar físico aplicable a la propuesta.
+        </span>
         </div>
         """, unsafe_allow_html=True)
 

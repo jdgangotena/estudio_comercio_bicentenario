@@ -560,6 +560,16 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         "realizar un estudio técnico de mercado que sustente la decisión de implementar "
         "kioskos comerciales en el Bulevar de las Canchas."
     ))
+    _p(doc, (
+        "Este proyecto se encuadra, además, en el horizonte de planificación 2025–2036 definido por "
+        "la Política Pública Metropolitana de Espacio Público (PPMEP 2025–2036), instrumento rector "
+        "que fija el año 2036 como visión del Distrito Metropolitano de Quito y establece el modelo "
+        "urbano policéntrico-compacto con Desarrollo Orientado al Transporte (DOT), priorizando "
+        "las áreas próximas a las estaciones del Metro como núcleos estratégicos de intervención "
+        "(pág. 43). En ese marco, el proyecto NFC1 \"Quioscos Quito\" de la misma política valida "
+        "expresamente los kioskos comerciales en espacio público como nueva forma de comercio de "
+        "proximidad (pág. 58)."
+    ))
     doc.add_page_break()
 
     # ━━━ 3. MARCO NORMATIVO O REFERENCIAL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -591,6 +601,16 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         ("Norma Técnica de Espacio Público del DMQ",
          "Establece los parámetros de diseño, accesibilidad y ocupación para elementos "
          "instalados en espacios públicos, aplicables al dimensionamiento de kioskos."),
+        ("Política Pública Metropolitana de Espacio Público — PPMEP 2025–2036 (MDMQ)",
+         "Instrumento rector del espacio público del DMQ con horizonte al año 2036. Define el modelo "
+         "urbano policéntrico-compacto con DOT. El proyecto NFC1 \"Quioscos Quito\" (pág. 58) valida "
+         "los kioskos comerciales en espacio público; el proyecto CCMA1 \"Zonas Metro\" (pág. 57) "
+         "establece intervenciones en el radio de influencia de estaciones del Metro, incluyendo el "
+         "área del Parque Bicentenario."),
+        ("Manual de Lineamientos del Parque Metropolitano Bicentenario (SHOT-DMDU, 2025)",
+         "Establece los estándares físicos para intervenciones en el parque. La Tipología 7 Comercial "
+         "define módulos de 9 × 4.8 m para bulevares, constituyendo el referente técnico de diseño "
+         "para los kioskos propuestos en el Bulevar de las Canchas."),
     ]
     tbl_n = doc.add_table(rows=len(normas) + 1, cols=2)
     tbl_n.style = "Table Grid"
@@ -781,6 +801,15 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         ("Ancho del pasillo",     "6.0 m"),
         ("Tipo de módulo",        "Semi-permanente / desmontable"),
     ])
+    _p(doc, (
+        "La propuesta cuenta con validación institucional explícita en la Política Pública "
+        "Metropolitana de Espacio Público (PPMEP 2025–2036): el proyecto NFC1 \"Quioscos Quito\" "
+        "(pág. 58) identifica los kioskos como estrategia prioritaria de \"nuevas formas de comercio "
+        "en espacio público\", alineada con el modelo DOT que articula comercio de proximidad con "
+        "la red de movilidad metropolitana. El estándar físico de referencia es la Tipología 7 "
+        "Comercial del Manual de Lineamientos del Parque Metropolitano Bicentenario (SHOT-DMDU, 2025), "
+        "que especifica módulos de 9 × 4.8 m para bulevares con circulación peatonal intensa."
+    ))
 
     zona_img = "src/img/render_bicentenario_bulevar.png"
     if os.path.exists(zona_img):
@@ -860,7 +889,12 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
         f"({pob_2026:,} hab. en 2026 → {pob_2036:,} hab. en 2036), el aumento progresivo "
         "de visitantes por la apertura del Metro (2029) y el incremento gradual de kioskos "
         "activos. Los modelos de ingreso utilizan el ticket promedio declarado por los "
-        "encuestados (${gasto}) bajo escenarios conservadores de ocupación.".format(gasto=gasto)
+        "encuestados (${gasto}) bajo escenarios conservadores de ocupación. "
+        "El horizonte 2036 coincide con la visión de largo plazo de la Política Pública "
+        "Metropolitana de Espacio Público (PPMEP 2025–2036), que proyecta la consolidación "
+        "del Parque Bicentenario como núcleo estratégico del modelo policéntrico-compacto "
+        "del DMQ, impulsado por el Desarrollo Orientado al Transporte (DOT) en torno a las "
+        "estaciones del Metro (pág. 43 PPMEP).".format(gasto=gasto)
     ))
     _insert_img(doc, charts.get("ing_zona"),
                 "Gráfico 9. Proyección de ingresos totales de la zona 2026–2036 (miles USD/año)", 6.0)
