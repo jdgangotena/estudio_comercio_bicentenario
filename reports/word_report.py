@@ -97,14 +97,25 @@ def build_charts(enc, kpis, stats, fc):
         plt.close(fig)
         return data
 
-    def _pie(series, title, w=5, h=4):
+    def _pie(series, title, w=6, h=4.5):
         vc = series.dropna().str.strip().value_counts()
+        total = vc.sum()
+        # Si algún segmento es < 5 %, usar leyenda para evitar solapamiento
+        use_legend = any(v / total < 0.05 for v in vc.values)
         fig, ax = plt.subplots(figsize=(w, h))
         wedges, texts, autotexts = ax.pie(
-            vc.values, labels=vc.index, autopct="%1.1f%%",
+            vc.values,
+            labels=None if use_legend else vc.index,
+            autopct="%1.1f%%",
+            pctdistance=0.78 if use_legend else 0.65,
             colors=COLS[:len(vc)], startangle=90,
             wedgeprops=dict(linewidth=1, edgecolor="white"),
         )
+        if use_legend:
+            ax.legend(wedges, vc.index, loc="center left",
+                      bbox_to_anchor=(1.0, 0.5), fontsize=8,
+                      frameon=False)
+            fig.subplots_adjust(right=0.70)
         for t in autotexts:
             t.set_fontsize(9)
         ax.set_title(title, fontsize=12, fontweight="bold", color=BLUE, pad=12)
