@@ -912,17 +912,29 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
     # 5.5 Proyección financiera
     _h(doc, "5.5 Proyección financiera y viabilidad", 2)
     _p(doc, (
-        f"La proyección se basa en el crecimiento esperado de la población del sector "
-        f"({pob_2026:,} hab. en 2026 → {pob_2036:,} hab. en 2036), el aumento progresivo "
-        "de visitantes por la apertura del Metro (2029) y el incremento gradual de kioskos "
-        "activos. Los gráficos 9 y 10 muestran el ingreso diario de la zona y por kiosko "
-        "en cada fase, calculados sobre el ticket promedio declarado por los encuestados "
-        "(${gasto}) y la tasa de consumo del {tasa:.1f}% de los visitantes. "
-        "El horizonte 2036 coincide con la visión de largo plazo de la Política Pública "
-        "Metropolitana de Espacio Público (PPMEP 2025–2036), que proyecta la consolidación "
-        "del Parque Bicentenario como núcleo estratégico del modelo policéntrico-compacto "
-        "del DMQ, impulsado por el Desarrollo Orientado al Transporte (DOT) en torno a las "
-        "estaciones del Metro (pág. 43 PPMEP).".format(gasto=gasto, tasa=kpis["consumiria_pct"])
+        "El modelo financiero proyecta los ingresos potenciales del proyecto en cuatro "
+        "fases (2026–2036), articuladas con los principales hitos de desarrollo urbano del "
+        "sector. Tres variables determinan el crecimiento de los ingresos: (1) el incremento "
+        f"de la población del área de influencia, que pasará de {pob_2026:,} hab. en 2026 "
+        f"a {pob_2036:,} hab. en 2036; (2) el aumento del flujo de visitantes al parque "
+        "asociado a la apertura de las estaciones de Metro Bicentenario y Andalucía (2029), "
+        "y (3) la incorporación progresiva de nuevos kioskos en cada fase."
+    ))
+    _p(doc, (
+        "Los ingresos se calculan multiplicando los visitantes diarios proyectados por la "
+        f"tasa de consumo ({kpis['consumiria_pct']:.1f}% de los encuestados declaró que "
+        "consumiría productos o servicios si estuvieran disponibles) y por el ticket promedio "
+        f"de ${gasto} declarado por los visitantes. El Gráfico 9 muestra el ingreso diario "
+        "total de la zona en cada fase; el Gráfico 10, el ingreso diario por kiosko, que "
+        "refleja cómo la rentabilidad individual se mantiene estable conforme se amplía la "
+        "red de módulos."
+    ))
+    _p(doc, (
+        "El horizonte 2036 no es arbitrario: coincide con la visión de largo plazo de la "
+        "Política Pública Metropolitana de Espacio Público (PPMEP 2025–2036), que establece "
+        "ese año como meta de consolidación del espacio público del DMQ bajo un modelo "
+        "policéntrico-compacto orientado al transporte (DOT), con las estaciones del Metro "
+        "como núcleos estratégicos de densificación y activación económica (pág. 43)."
     ))
     _insert_img(doc, charts.get("ing_zona"),
                 "Gráfico 9. Crecimiento de ingresos diarios de la zona — 2026–2036 (USD/día)", 6.0)
