@@ -548,17 +548,28 @@ def generate_word_report(enc, kpis, stats, fc, charts=None):
     _h(doc, "2. ANTECEDENTES", 1)
     _p(doc, (
         "El Parque Bicentenario ocupa los terrenos del antiguo Aeropuerto Internacional "
-        "Mariscal Sucre de Quito, cuya operación fue trasladada al nuevo aeropuerto de Tababela "
-        "en febrero de 2013. Con aproximadamente 50 hectáreas de área verde, es el parque urbano "
-        "más extenso de la ciudad y uno de los más significativos de la región andina."
+        "Mariscal Sucre de Quito. La destinación de dichos terrenos para uso de parque y "
+        "equipamiento urbano tiene su origen en la Ordenanza Metropolitana N.° 3535, sancionada "
+        "el 5 de agosto de 2004, que definió la ejecución del nuevo aeropuerto de Quito y "
+        "estableció que los terrenos del Aeropuerto Mariscal Sucre serían destinados a un parque "
+        "con su respectivo equipamiento. La operación aeroportuaria fue trasladada al nuevo "
+        "aeropuerto de Tababela y el parque comenzó a operar en abril de 2013. Su superficie "
+        "gráfica registrada es de 1 158 142,82 m² (aproximadamente 115,8 hectáreas), conforme "
+        "a los datos del sistema GeoQuito del Municipio del Distrito Metropolitano de Quito, "
+        "siendo el parque urbano más extenso de la ciudad."
     ))
     _p(doc, (
-        "Administrado por la EPMMOP en virtud de la delegación otorgada por el Municipio del "
-        "Distrito Metropolitano de Quito (MDMQ), el parque se ha consolidado como el principal "
-        f"espacio de esparcimiento, deporte y cultura del norte de Quito, registrando "
-        f"{vis_2025:,} visitas durante el año 2025, según datos entregados por la Gerencia "
-        "de Administración de Parques y Espacios Verdes (GAPEV) a la Gerencia Comercial (GC) "
-        "para la elaboración de este estudio."
+        "La administración del parque está a cargo de la Empresa Pública Metropolitana de "
+        "Movilidad y Obras Públicas (EPMMOP), cuyo objeto institucional —definido en el "
+        "Capítulo II, artículos 172 y 173 del Código Municipal del Distrito Metropolitano de "
+        "Quito— comprende diseñar, planificar, construir, administrar, operar y mantener la "
+        "infraestructura física del espacio público, así como gestionar y explotar el espacio "
+        "público destinado a usos compatibles con la función urbana. En ejercicio de ese objeto, "
+        "la EPMMOP administra el Parque Bicentenario como principal espacio de esparcimiento, "
+        f"deporte y cultura del norte de Quito, registrando {vis_2025:,} visitas durante el "
+        "año 2025, según datos entregados por la Gerencia de Administración de Parques y "
+        "Espacios Verdes (GAPEV) a la Gerencia Comercial (GC) de la EPMMOP para la elaboración "
+        "del presente estudio."
     ))
     _p(doc, (
         "A pesar de su alta afluencia, el parque no cuenta con una oferta comercial formal que "
